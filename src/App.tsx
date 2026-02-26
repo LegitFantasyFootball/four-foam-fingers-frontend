@@ -32,56 +32,38 @@ export default function App() {
     <Routes>
       <Route path="/" element={<HomePage />} />
 
-      {/* Auth gate for the whole game */}
+      {/* Everything under GAME_BASE requires auth */}
       <Route path={GAME_BASE} element={<AuthGate />}>
-        <Route path={`${GAME_BASE}/login`} element={<LoginPage />} />
+        {/* Relative paths from here down */}
+        <Route path="login" element={<LoginPage />} />
 
-        {/* Game app routes (shared top nav / flow helper) */}
         <Route element={<AppShell />}>
-          <Route path={GAME_BASE} element={<GameLobbyPage />} />
-          <Route path={`${GAME_BASE}/lets-go`} element={<LetsGoPage />} />
+          <Route index element={<GameLobbyPage />} />
+          <Route path="lets-go" element={<LetsGoPage />} />
 
           {/* Commissioner */}
           <Route
-            path={`${GAME_BASE}/commissioner`}
-            element={<Navigate to={`${GAME_BASE}/commissioner/leagues/new`} replace />}
+            path="commissioner"
+            element={<Navigate to="commissioner/leagues/new" replace />}
           />
-          <Route path={`${GAME_BASE}/commissioner/leagues/new`} element={<CreateLeaguePage />} />
-          <Route
-            path={`${GAME_BASE}/commissioner/league/:leagueId`}
-            element={<CommissionerLeaguePage />}
-          />
-          <Route
-            path={`${GAME_BASE}/commissioner/league/:leagueId/invites`}
-            element={<CommissionerInvitesPage />}
-          />
-          <Route
-            path={`${GAME_BASE}/commissioner/league/:leagueId/assignments`}
-            element={<CommissionerAssignmentsPage />}
-          />
+          <Route path="commissioner/leagues/new" element={<CreateLeaguePage />} />
+          <Route path="commissioner/league/:leagueId" element={<CommissionerLeaguePage />} />
+          <Route path="commissioner/league/:leagueId/invites" element={<CommissionerInvitesPage />} />
+          <Route path="commissioner/league/:leagueId/assignments" element={<CommissionerAssignmentsPage />} />
 
           {/* Player */}
-          <Route path={`${GAME_BASE}/player/join`} element={<PlayerJoinPage />} />
-          <Route path={`${GAME_BASE}/player/my-leagues`} element={<MyLeaguesPage />} />
-          <Route
-            path={`${GAME_BASE}/player/league/:leagueId/my-teams`}
-            element={<MyTeamsPage />}
-          />
+          <Route path="player/join" element={<PlayerJoinPage />} />
+          <Route path="player/my-leagues" element={<MyLeaguesPage />} />
+          <Route path="player/league/:leagueId/my-teams" element={<MyTeamsPage />} />
 
           {/* League + tournament scoped views */}
-          <Route
-            path={`${GAME_BASE}/league/:leagueId/tournament/:tournamentId/leaderboard`}
-            element={<LeaderboardPage />}
-          />
-          <Route
-            path={`${GAME_BASE}/league/:leagueId/tournament/:tournamentId/live-bracket`}
-            element={<LiveBracketPage />}
-          />
+          <Route path="league/:leagueId/tournament/:tournamentId/leaderboard" element={<LeaderboardPage />} />
+          <Route path="league/:leagueId/tournament/:tournamentId/live-bracket" element={<LiveBracketPage />} />
         </Route>
 
-        {/* Admin routes (still behind auth, plus AdminRoute) */}
+        {/* Admin routes (still under auth + AdminRoute) */}
         <Route
-          path={`${GAME_BASE}/admin`}
+          path="admin"
           element={
             <AdminRoute>
               <AdminConsolePage />
@@ -89,7 +71,7 @@ export default function App() {
           }
         />
         <Route
-          path={`${GAME_BASE}/admin/tournament-field-setup`}
+          path="admin/tournament-field-setup"
           element={
             <AdminRoute>
               <AdminTournamentFieldsSetupPage />
@@ -97,7 +79,7 @@ export default function App() {
           }
         />
         <Route
-          path={`${GAME_BASE}/league/:leagueId/tournament/:tournamentId/admin-winners`}
+          path="league/:leagueId/tournament/:tournamentId/admin-winners"
           element={
             <AdminRoute>
               <AdminWinnersPage />
@@ -105,18 +87,10 @@ export default function App() {
           }
         />
 
-        <Route
-          path={`${GAME_BASE}/admin/*`}
-          element={<Navigate to={`${GAME_BASE}/admin`} replace />}
-        />
-        <Route
-          path={`${GAME_BASE}/commissioner/*`}
-          element={<Navigate to={`${GAME_BASE}/commissioner/leagues/new`} replace />}
-        />
-        <Route
-          path={`${GAME_BASE}/*`}
-          element={<Navigate to={`${GAME_BASE}/lets-go`} replace />}
-        />
+        {/* Scoped fallbacks */}
+        <Route path="admin/*" element={<Navigate to="admin" replace />} />
+        <Route path="commissioner/*" element={<Navigate to="commissioner/leagues/new" replace />} />
+        <Route path="*" element={<Navigate to="lets-go" replace />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
