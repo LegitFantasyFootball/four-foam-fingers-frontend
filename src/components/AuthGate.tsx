@@ -32,5 +32,5 @@ export default function AuthGate() {
   // allow login route without session
   if (loc.pathname.endsWith("/login")) return <Outlet />;
 
-  return hasSession ? <Outlet /> : <Navigate to="login" replace />;
+  return hasSession ? <Outlet /> : <Navigate to="/march-basketball-foam-fingers/login" replace />;
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchLeaderboard } from "../lib/api";
+import { apiFetchJson, fetchLeaderboard } from "../lib/api";
 
 type MyLeague = {
   league_id: number;
@@ -34,24 +34,10 @@ export default function MyLeaguesPage() {
     setError("");
 
     try {
-      const res = await fetch(buildApiUrl("/player/leagues/mine"), {
-        method: "GET",
-        headers: buildHeaders(),
-      });
+      const json = await apiFetchJson<MyLeaguesResponse>("/player/leagues/mine", { method: "GET" });
 
-      const json = (await safeJson(res)) as MyLeaguesResponse | { detail?: unknown };
-
-      if (!res.ok) {
-        const detail =
-          typeof (json as { detail?: unknown })?.detail === "string"
-            ? (json as { detail?: string }).detail
-            : `Load my leagues failed (${res.status})`;
-        throw new Error(detail);
-      }
-
-      setData(json as MyLeaguesResponse);
-      const payload = json as MyLeaguesResponse;
-      void loadLeagueRanks(payload.leagues, payload.user_id);
+      setData(json);
+      void loadLeagueRanks(json.leagues, json.user_id);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Load my leagues failed");
     } finally {
@@ -198,35 +184,6 @@ export default function MyLeaguesPage() {
       </div>
     </main>
   );
-}
-
-function buildApiUrl(path: string): string {
-  const base = (import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_API_BASE_URL ?? "";
-  return `${base}${path}`;
-}
-
-function buildHeaders(): HeadersInit {
-  const env = (import.meta as ImportMeta & { env?: Record<string, string> }).env ?? {};
-  const headers: Record<string, string> = {};
-
-  const accessToken = env.VITE_ACCESS_TOKEN;
-  if (accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`;
-  } else if (env.VITE_FFF_TEST_USER_ID) {
-    headers["X-Test-User-Id"] = env.VITE_FFF_TEST_USER_ID;
-  }
-
-  return headers;
-}
-
-async function safeJson(res: Response): Promise<unknown> {
-  const text = await res.text();
-  if (!text) return {};
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { detail: text };
-  }
 }
 
 function SectionCard({ children }: { children: ReactNode }) {

@@ -54,9 +54,10 @@ export default function LeaderboardPage() {
   }
 
   useEffect(() => {
-    loadLeaderboard(false);
+    if (!hasValidParams) return;
+    void loadLeaderboard(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leagueId, tournamentId]);
+  }, [leagueId, tournamentId, hasValidParams]);
 
   const empty = useMemo(
     () => !loading && !error && rows.length === 0,

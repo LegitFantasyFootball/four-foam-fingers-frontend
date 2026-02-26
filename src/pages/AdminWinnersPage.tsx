@@ -187,18 +187,19 @@ async function loadAudit() {
   }
 
     useEffect(() => {
+    if (!hasValidParams) return;
     Promise.all([loadGames(), loadAudit()]).then(() => {
         setLastUpdated(new Date().toLocaleTimeString());
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [leagueId, tournamentId]);
+    }, [leagueId, tournamentId, hasValidParams]);
 
   return (
     <main style={{ minHeight: "100vh", padding: 16 }}>
       <div style={{ maxWidth: 920, margin: "0 auto" }}>
         {/* Top controls */}
         <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-          <button onClick={() => navigate(-1)}>Back</button>
+          <button onClick={() => navigate("/march-basketball-foam-fingers/admin")}>Back</button>
             <button
             disabled={!hasValidParams}
             onClick={() =>

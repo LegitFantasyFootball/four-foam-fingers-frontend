@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiFetchJson } from "../lib/api";
 
 function getLeagueIdFromResponse(data: unknown): number | null {
   if (!data || typeof data !== "object") return null;
@@ -60,21 +61,11 @@ export default function CreateLeaguePage() {
     };
 
     try {
-      const res = await fetch(buildApiUrl("/commissioner/leagues"), {
+        const data = await apiFetchJson<CreateLeagueResponse>("/commissioner/leagues", {
         method: "POST",
-        headers: buildHeaders(),
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      });
-
-      const data = (await safeJson(res)) as CreateLeagueResponse | { detail?: unknown };
-
-      if (!res.ok) {
-        const detail =
-          typeof (data as { detail?: unknown })?.detail === "string"
-            ? (data as { detail?: string }).detail
-            : `Create league failed (${res.status})`;
-        throw new Error(detail);
-      }
+        });
 
       const leagueId = getLeagueIdFromResponse(data);
       if (leagueId !== null) {
@@ -157,31 +148,6 @@ export default function CreateLeaguePage() {
   );
 }
 
-function buildApiUrl(path: string): string {
-  const base = (import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_API_BASE_URL ?? "";
-  return `${base}${path}`;
-}
-
-function buildHeaders(): HeadersInit {
-  const env = (import.meta as ImportMeta & { env?: Record<string, string> }).env ?? {};
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-
-  const accessToken = env.VITE_ACCESS_TOKEN;
-  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-  else if (env.VITE_FFF_TEST_USER_ID) headers["X-Test-User-Id"] = env.VITE_FFF_TEST_USER_ID;
-
-  return headers;
-}
-
-async function safeJson(res: Response): Promise<unknown> {
-  const text = await res.text();
-  if (!text) return {};
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { detail: text };
-  }
-}
 
 function SectionCard({ children }: { children: React.ReactNode }) {
   return (

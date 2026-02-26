@@ -1,6 +1,7 @@
 //src/pages/CommissionerAssignmentsPage.tsx
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { apiFetchJson } from "../lib/api";
 
 type GenerateAssignmentsResponse = {
   league_id: number;
@@ -47,17 +48,17 @@ export default function CommissionerAssignmentsPage() {
   const seedNum = Number(seed);
   const includeSeed = seed.trim().length > 0 && Number.isInteger(seedNum);
 
-  const requestUrl = useMemo(() => {
+  const requestPath = useMemo(() => {
     if (!hasValidLeagueId) return "";
     const qs = new URLSearchParams();
     if (includeSeed) qs.set("seed", String(seedNum));
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return buildApiUrl(`/commissioner/leagues/${leagueIdNum}/generate-assignments${suffix}`);
+    return `/commissioner/leagues/${leagueIdNum}/generate-assignments${suffix}`;
   }, [hasValidLeagueId, leagueIdNum, includeSeed, seedNum]);
 
-  const assignmentsUrl = useMemo(() => {
+  const assignmentsPath = useMemo(() => {
     if (!hasValidLeagueId) return "";
-    return buildApiUrl(`/commissioner/leagues/${leagueIdNum}/assignments`);
+    return `/commissioner/leagues/${leagueIdNum}/assignments`;
   }, [hasValidLeagueId, leagueIdNum]);
 
   const fairnessRows = useMemo(() => {
@@ -105,22 +106,13 @@ export default function CommissionerAssignmentsPage() {
     setError("");
 
     try {
-      const res = await fetch(assignmentsUrl, {
+      if (!assignmentsPath) throw new Error("Missing assignments path");
+
+      const data = await apiFetchJson<LeagueAssignmentsResponse>(assignmentsPath, {
         method: "GET",
-        headers: buildHeaders(),
       });
 
-      const data = (await safeJson(res)) as LeagueAssignmentsResponse | { detail?: unknown };
-
-      if (!res.ok) {
-        const detail =
-          typeof (data as { detail?: unknown })?.detail === "string"
-            ? (data as { detail?: string }).detail
-            : `Load assignments failed (${res.status})`;
-        throw new Error(detail);
-      }
-
-      setAssignmentsData(data as LeagueAssignmentsResponse);
+      setAssignmentsData(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Load assignments failed");
     } finally {
@@ -136,22 +128,13 @@ export default function CommissionerAssignmentsPage() {
     setResult(null);
 
     try {
-      const res = await fetch(requestUrl, {
+      if (!requestPath) throw new Error("Missing generate path");
+
+      const data = await apiFetchJson<GenerateAssignmentsResponse>(requestPath, {
         method: "POST",
-        headers: buildHeaders(),
       });
 
-      const data = (await safeJson(res)) as GenerateAssignmentsResponse | { detail?: unknown };
-
-      if (!res.ok) {
-        const detail =
-          typeof (data as { detail?: unknown })?.detail === "string"
-            ? (data as { detail?: string }).detail
-            : `Generate assignments failed (${res.status})`;
-        throw new Error(detail);
-      }
-
-      setResult(data as GenerateAssignmentsResponse);
+      setResult(data);
 
       // Auto-refresh assignments after successful generation
       await loadAssignments();
@@ -404,34 +387,6 @@ export default function CommissionerAssignmentsPage() {
   );
 }
 
-function buildApiUrl(path: string): string {
-  const base = (import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_API_BASE_URL ?? "";
-  return `${base}${path}`;
-}
-
-function buildHeaders(): HeadersInit {
-  const env = (import.meta as ImportMeta & { env?: Record<string, string> }).env ?? {};
-  const headers: Record<string, string> = {};
-
-  const accessToken = env.VITE_ACCESS_TOKEN;
-  if (accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`;
-  } else if (env.VITE_FFF_TEST_USER_ID) {
-    headers["X-Test-User-Id"] = env.VITE_FFF_TEST_USER_ID;
-  }
-
-  return headers;
-}
-
-async function safeJson(res: Response): Promise<unknown> {
-  const text = await res.text();
-  if (!text) return {};
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { detail: text };
-  }
-}
 
 function SectionCard({ children }: { children: ReactNode }) {
   return (

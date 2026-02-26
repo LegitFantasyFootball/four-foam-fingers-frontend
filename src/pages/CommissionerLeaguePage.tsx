@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { apiFetchJson } from "../lib/api";
 
 type LeagueSummary = {
   league_id: number;
@@ -35,21 +36,11 @@ export default function CommissionerLeaguePage() {
     setError("");
 
     try {
-      const res = await fetch(buildApiUrl(`/commissioner/leagues/${leagueIdNum}`), {
-        headers: buildHeaders(),
+      const data = await apiFetchJson<LeagueSummary>(`/commissioner/leagues/${leagueIdNum}`, {
+        method: "GET",
       });
 
-      const data = (await safeJson(res)) as LeagueSummary | { detail?: unknown };
-
-      if (!res.ok) {
-        const detail =
-          typeof (data as { detail?: unknown })?.detail === "string"
-            ? (data as { detail?: string }).detail
-            : `Load league failed (${res.status})`;
-        throw new Error(detail);
-      }
-
-      setLeague(data as LeagueSummary);
+      setLeague(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Load league failed");
     } finally {
@@ -183,34 +174,7 @@ export default function CommissionerLeaguePage() {
   );
 }
 
-function buildApiUrl(path: string): string {
-  const base = (import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_API_BASE_URL ?? "";
-  return `${base}${path}`;
-}
 
-function buildHeaders(): HeadersInit {
-  const env = (import.meta as ImportMeta & { env?: Record<string, string> }).env ?? {};
-  const headers: Record<string, string> = {};
-
-  const accessToken = env.VITE_ACCESS_TOKEN;
-  if (accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`;
-  } else if (env.VITE_FFF_TEST_USER_ID) {
-    headers["X-Test-User-Id"] = env.VITE_FFF_TEST_USER_ID;
-  }
-
-  return headers;
-}
-
-async function safeJson(res: Response): Promise<unknown> {
-  const text = await res.text();
-  if (!text) return {};
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { detail: text };
-  }
-}
 
 function SectionCard({ children }: { children: React.ReactNode }) {
   return (

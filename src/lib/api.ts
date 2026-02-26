@@ -159,7 +159,11 @@ export async function fetchLeaderboard(
 
   return requestJson<LeaderboardResponse>(
     url,
-    { method: "GET", signal: opts?.signal },
+    {
+      method: "GET",
+      headers: await buildHeaders(opts), // <-- THIS is the fix
+      signal: opts?.signal,
+    },
     "Leaderboard fetch failed",
     opts
   );
@@ -240,4 +244,9 @@ export async function fetchAudit(
     "Audit fetch failed",
     opts
   );
+}
+
+export async function apiFetchJson<T>(path: string, init: RequestInit = {}, opts?: RequestOptions): Promise<T> {
+  const url = new URL(path, API_BASE_URL);
+  return requestJson<T>(url, init, `API request failed: ${path}`, opts);
 }

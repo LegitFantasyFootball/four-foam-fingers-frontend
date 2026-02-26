@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { apiFetchJson } from "../lib/api";
 
 type MyTeam = {
   team_id: number;
@@ -71,22 +72,11 @@ export default function MyTeamsPage() {
     setError("");
 
     try {
-      const res = await fetch(buildApiUrl(`/player/leagues/${leagueIdNum}/my-teams`), {
+        const json = await apiFetchJson<MyTeamsResponse>(`/player/leagues/${leagueIdNum}/my-teams`, {
         method: "GET",
-        headers: buildHeaders(),
-      });
+        });
 
-      const json = (await safeJson(res)) as MyTeamsResponse | { detail?: unknown };
-
-      if (!res.ok) {
-        const detail =
-          typeof (json as { detail?: unknown })?.detail === "string"
-            ? (json as { detail?: string }).detail
-            : `Load my teams failed (${res.status})`;
-        throw new Error(detail);
-      }
-
-      setData(json as MyTeamsResponse);
+        setData(json);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Load my teams failed");
     } finally {
@@ -143,7 +133,7 @@ export default function MyTeamsPage() {
                 )}
 
               <button
-                onClick={loadMyTeams}
+                onClick={() => void loadMyTeams()}
                 disabled={!hasValidLeagueId || isLoading}
                 style={{
                   ...buttonBase,
@@ -212,34 +202,7 @@ export default function MyTeamsPage() {
   );
 }
 
-function buildApiUrl(path: string): string {
-  const base = (import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_API_BASE_URL ?? "";
-  return `${base}${path}`;
-}
 
-function buildHeaders(): HeadersInit {
-  const env = (import.meta as ImportMeta & { env?: Record<string, string> }).env ?? {};
-  const headers: Record<string, string> = {};
-
-  const accessToken = env.VITE_ACCESS_TOKEN;
-  if (accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`;
-  } else if (env.VITE_FFF_TEST_USER_ID) {
-    headers["X-Test-User-Id"] = env.VITE_FFF_TEST_USER_ID;
-  }
-
-  return headers;
-}
-
-async function safeJson(res: Response): Promise<unknown> {
-  const text = await res.text();
-  if (!text) return {};
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { detail: text };
-  }
-}
 
 function SectionCard({ children }: { children: ReactNode }) {
   return (

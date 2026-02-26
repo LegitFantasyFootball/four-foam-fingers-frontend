@@ -1,6 +1,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
-
+import { apiFetchJson } from "../lib/api";
 /**
  * AdminTournamentFieldSetupPage
  *
@@ -95,37 +95,8 @@ const REGION_SEED_SLOTS: Array<{ region: Region; seed: number }> = (() => {
   return slots;
 })();
 
-/* =========================
-   API helper (replace if needed)
-========================= */
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
-async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const base = import.meta.env.VITE_API_BASE_URL;
-
-  const res = await fetch(`${base}${path}`, {
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      "x-test-user-id": "1001", // dev bypass header
-      ...(init?.headers || {}),
-    },
-    ...init,
-  });
-
-  if (!res.ok) {
-    let detail = `HTTP ${res.status}`;
-    try {
-      const data = await res.json();
-      if (data?.detail) detail = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail);
-      else detail = JSON.stringify(data);
-    } catch {}
-    throw new Error(detail);
-  }
-
-  return res.json() as Promise<T>;
-}
 
 /* =========================
    Utils
@@ -195,7 +166,9 @@ export default function AdminTournamentFieldSetupPage() {
     setMessage("");
     setLoadingTeams(true);
     try {
-      const data = await apiRequest<GetTournamentTeamsResponse>(`/admin/tournaments/${tournamentId}/teams`);
+      const data = await apiFetchJson<GetTournamentTeamsResponse>(`/admin/tournaments/${tournamentId}/teams`, {
+        method: "GET",
+      });
       const mapped: TeamRow[] = data.items.map((t) => ({
         localId: makeLocalId(),
         college_program_id: t.college_program_id,
@@ -230,7 +203,9 @@ export default function AdminTournamentFieldSetupPage() {
         limit: "200",
         offset: "0",
       });
-      const data = await apiRequest<GetCollegeProgramsResponse>(`/admin/college-programs?${q.toString()}`);
+      const data = await apiFetchJson<GetCollegeProgramsResponse>(`/admin/college-programs?${q.toString()}`, {
+        method: "GET",
+      });
       setProgramResults(data.items || []);
     } catch (e: any) {
       setError(e?.message || "Failed to search college programs");
@@ -382,8 +357,9 @@ export default function AdminTournamentFieldSetupPage() {
 
     setSaving(true);
     try {
-      const res = await apiRequest<UpsertResponse>(`/admin/tournaments/${tournamentId}/teams`, {
+      const res = await apiFetchJson<UpsertResponse>(`/admin/tournaments/${tournamentId}/teams`, {
         method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 

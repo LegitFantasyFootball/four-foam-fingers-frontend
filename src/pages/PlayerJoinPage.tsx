@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiFetchJson } from "../lib/api";
 
 type JoinLeagueResponse = {
   league_id: number;
@@ -12,12 +13,14 @@ type JoinLeagueResponse = {
   role?: string;
 
   players_joined?: number;
-  joined_count: number; // backward compatible from backend
+  joined_count: number;
   members_total?: number;
 
   user_count_target: number;
   status: string;
 };
+
+const GAME_BASE = "/march-basketball-foam-fingers";
 
 export default function PlayerJoinPage() {
   const navigate = useNavigate();
@@ -29,7 +32,7 @@ export default function PlayerJoinPage() {
 
   const canSubmit = leagueCode.trim().length > 0;
   const resultSubtext = result ? renderResultSubtext(result) : null;
-  
+
   async function handleJoin() {
     if (!canSubmit || isSubmitting) return;
 
@@ -38,23 +41,13 @@ export default function PlayerJoinPage() {
     setResult(null);
 
     try {
-      const res = await fetch(buildApiUrl("/player/leagues/join"), {
+      const data = await apiFetchJson<JoinLeagueResponse>("/player/leagues/join", {
         method: "POST",
-        headers: buildHeaders(),
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ league_code: leagueCode.trim() }),
       });
 
-      const data = (await safeJson(res)) as JoinLeagueResponse | { detail?: unknown };
-
-      if (!res.ok) {
-        const detail =
-          typeof (data as { detail?: unknown })?.detail === "string"
-            ? (data as { detail?: string }).detail
-            : `Join failed (${res.status})`;
-        throw new Error(detail);
-      }
-
-      setResult(data as JoinLeagueResponse);
+      setResult(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Join failed");
     } finally {
@@ -95,7 +88,7 @@ export default function PlayerJoinPage() {
             </div>
 
             <button
-              onClick={() => navigate("/march-basketball-foam-fingers/lets-go")}
+              onClick={() => navigate(`${GAME_BASE}/lets-go`)}
               style={{ ...buttonBase, ...buttonSecondary }}
             >
               Back
@@ -137,9 +130,7 @@ export default function PlayerJoinPage() {
             <div style={{ fontWeight: 800, marginBottom: 10 }}>{renderResultTitle(result)}</div>
 
             {resultSubtext && (
-            <div style={{ color: "var(--fff-muted)", marginBottom: 10 }}>
-                {resultSubtext}
-            </div>
+              <div style={{ color: "var(--fff-muted)", marginBottom: 10 }}>{resultSubtext}</div>
             )}
 
             <div style={{ display: "grid", gap: 6 }}>
@@ -171,26 +162,26 @@ export default function PlayerJoinPage() {
               <button
                 onClick={() =>
                   navigate(
-                    `/march-basketball-foam-fingers/league/${result.league_id}/tournament/${result.tournament_id}/leaderboard`
+                    `${GAME_BASE}/league/${result.league_id}/tournament/${result.tournament_id}/leaderboard`
                   )
                 }
                 style={{ ...buttonBase, ...buttonPrimary }}
               >
                 Open Leaderboard
               </button>
-                <button
-                onClick={() =>
-                    navigate(`/march-basketball-foam-fingers/player/league/${result.league_id}/my-teams`)
-                }
+
+              <button
+                onClick={() => navigate(`${GAME_BASE}/player/league/${result.league_id}/my-teams`)}
                 style={{ ...buttonBase, ...buttonSecondary }}
-                >
+              >
                 My Teams
-                </button>
+              </button>
+
               <button
                 onClick={() =>
-                navigate(
-                    `/march-basketball-foam-fingers/league/${result.league_id}/tournament/${result.tournament_id}/live-bracket`
-                )
+                  navigate(
+                    `${GAME_BASE}/league/${result.league_id}/tournament/${result.tournament_id}/live-bracket`
+                  )
                 }
                 style={{ ...buttonBase, ...buttonSecondary }}
               >
@@ -202,37 +193,6 @@ export default function PlayerJoinPage() {
       </div>
     </main>
   );
-}
-
-function buildApiUrl(path: string): string {
-  const base = (import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_API_BASE_URL ?? "";
-  return `${base}${path}`;
-}
-
-function buildHeaders(): HeadersInit {
-  const env = (import.meta as ImportMeta & { env?: Record<string, string> }).env ?? {};
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-
-  const accessToken = env.VITE_ACCESS_TOKEN;
-  if (accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`;
-  } else if (env.VITE_FFF_TEST_USER_ID) {
-    headers["X-Test-User-Id"] = env.VITE_FFF_TEST_USER_ID;
-  }
-
-  return headers;
-}
-
-async function safeJson(res: Response): Promise<unknown> {
-  const text = await res.text();
-  if (!text) return {};
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { detail: text };
-  }
 }
 
 function SectionCard({ children }: { children: React.ReactNode }) {
