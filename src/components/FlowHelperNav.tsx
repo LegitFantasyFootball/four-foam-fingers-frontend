@@ -1,11 +1,15 @@
 import type { CSSProperties } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabase";
 
 type Props = {
   leagueId?: number | null;
   tournamentId?: number | null;
   showCommissionerTools?: boolean;
 };
+
+const GAME_BASE = "/march-basketball-foam-fingers";
 
 export default function FlowHelperNav({
   leagueId,
@@ -14,60 +18,75 @@ export default function FlowHelperNav({
 }: Props) {
   const navigate = useNavigate();
 
+  const [email, setEmail] = useState<string>("");
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setEmail(data.session?.user?.email ?? "");
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
+      setEmail(session?.user?.email ?? "");
+    });
+
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  async function logout() {
+    await supabase.auth.signOut();
+    navigate(`${GAME_BASE}/login`, { replace: true });
+  }
+
   const hasLeague = Number.isInteger(leagueId) && (leagueId ?? 0) > 0;
   const hasTournament = Number.isInteger(tournamentId) && (tournamentId ?? 0) > 0;
 
   return (
     <div style={wrapStyle}>
-
       <div style={chipsWrapStyle}>
         <button
-        onClick={() => navigate("/march-basketball-foam-fingers/lets-go")}
-        style={{ ...chipButtonBase, ...chipSecondary }}
+          onClick={() => navigate(`${GAME_BASE}/lets-go`)}
+          style={{ ...chipButtonBase, ...chipSecondary }}
         >
-        Home
+          Home
         </button>
+
         <button
-          onClick={() => navigate("/march-basketball-foam-fingers/player/my-leagues")}
+          onClick={() => navigate(`${GAME_BASE}/player/my-leagues`)}
           style={{ ...chipButtonBase, ...chipSecondary }}
         >
           My Leagues
         </button>
 
         <button
-          onClick={() => navigate("/march-basketball-foam-fingers/player/join")}
+          onClick={() => navigate(`${GAME_BASE}/player/join`)}
           style={{ ...chipButtonBase, ...chipSecondary }}
         >
           Join League
         </button>
 
         {hasLeague && hasTournament && (
-        <button
+          <button
             onClick={() =>
-            navigate(
-                `/march-basketball-foam-fingers/league/${leagueId}/tournament/${tournamentId}/live-bracket`
-            )
+              navigate(
+                `${GAME_BASE}/league/${leagueId}/tournament/${tournamentId}/live-bracket`
+              )
             }
             style={{ ...chipButtonBase, ...chipSecondary }}
-        >
+          >
             Live Bracket
-        </button>
+          </button>
         )}
 
         <button
-        onClick={() => navigate("/march-basketball-foam-fingers/commissioner/leagues/new")}
-        style={{ ...chipButtonBase, ...chipSecondary }}
+          onClick={() => navigate(`${GAME_BASE}/commissioner/leagues/new`)}
+          style={{ ...chipButtonBase, ...chipSecondary }}
         >
-        Create League
+          Create League
         </button>
-
-
 
         {hasLeague && (
           <button
-            onClick={() =>
-              navigate(`/march-basketball-foam-fingers/player/league/${leagueId}/my-teams`)
-            }
+            onClick={() => navigate(`${GAME_BASE}/player/league/${leagueId}/my-teams`)}
             style={{ ...chipButtonBase, ...chipSecondary }}
           >
             My Teams
@@ -78,7 +97,7 @@ export default function FlowHelperNav({
           <button
             onClick={() =>
               navigate(
-                `/march-basketball-foam-fingers/league/${leagueId}/tournament/${tournamentId}/leaderboard`
+                `${GAME_BASE}/league/${leagueId}/tournament/${tournamentId}/leaderboard`
               )
             }
             style={{ ...chipButtonBase, ...chipSecondary }}
@@ -90,18 +109,14 @@ export default function FlowHelperNav({
         {showCommissionerTools && hasLeague && (
           <>
             <button
-              onClick={() =>
-                navigate(`/march-basketball-foam-fingers/commissioner/league/${leagueId}`)
-              }
+              onClick={() => navigate(`${GAME_BASE}/commissioner/league/${leagueId}`)}
               style={{ ...chipButtonBase, ...chipSecondary }}
             >
               League Page
             </button>
 
             <button
-              onClick={() =>
-                navigate(`/march-basketball-foam-fingers/commissioner/league/${leagueId}/invites`)
-              }
+              onClick={() => navigate(`${GAME_BASE}/commissioner/league/${leagueId}/invites`)}
               style={{ ...chipButtonBase, ...chipSecondary }}
             >
               Invites
@@ -109,13 +124,35 @@ export default function FlowHelperNav({
 
             <button
               onClick={() =>
-                navigate(`/march-basketball-foam-fingers/commissioner/league/${leagueId}/assignments`)
+                navigate(`${GAME_BASE}/commissioner/league/${leagueId}/assignments`)
               }
               style={{ ...chipButtonBase, ...chipSecondary }}
             >
               Assignments
             </button>
           </>
+        )}
+
+        {/* Auth chips (right side-ish; still scrollable) */}
+        {email ? (
+          <>
+            <span style={{ ...chipButtonBase, ...chipGhost }}>
+              {email}
+            </span>
+            <button
+              onClick={logout}
+              style={{ ...chipButtonBase, ...chipPrimary }}
+            >
+              Log out
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => navigate(`${GAME_BASE}/login`)}
+            style={{ ...chipButtonBase, ...chipPrimary }}
+          >
+            Sign in
+          </button>
         )}
       </div>
     </div>
@@ -127,12 +164,6 @@ const wrapStyle: CSSProperties = {
   border: "none",
   padding: 0,
   borderRadius: 0,
-};
-
-const titleStyle: CSSProperties = {
-  fontWeight: 800,
-  fontSize: 14,
-  marginBottom: 10,
 };
 
 const chipsWrapStyle: CSSProperties = {
@@ -162,4 +193,10 @@ const chipPrimary: CSSProperties = {
 const chipSecondary: CSSProperties = {
   background: "rgba(255,255,255,0.04)",
   color: "var(--fff-text)",
+};
+
+const chipGhost: CSSProperties = {
+  background: "transparent",
+  color: "rgba(255,255,255,0.7)",
+  border: "1px solid rgba(255,255,255,0.15)",
 };
