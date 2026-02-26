@@ -1,0 +1,81 @@
+:root {
+  --fff-bg: #0B3323;
+  --fff-surface: #107554;
+  --fff-accent: #30F24E;
+  --fff-text: #FFFFFF;
+  --fff-muted: rgba(255, 255, 255, 0.75);
+  --fff-border: rgba(48, 242, 78, 0.20);
+
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  line-height: 1.4;
+  font-weight: 400;
+  color: var(--fff-text);
+  background: var(--fff-bg);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100%;
+}
+
+body {
+  background: var(--fff-bg);
+  color: var(--fff-text);
+}
+
+a {
+  color: var(--fff-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  border-radius: 10px;
+  border: 1px solid var(--fff-border);
+  padding: 0.65rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--fff-text);
+  background: var(--fff-surface);
+  cursor: pointer;
+  transition: transform 0.08s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+button:hover {
+  border-color: var(--fff-accent);
+  opacity: 0.95;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+button:focus,
+button:focus-visible {
+  outline: 2px solid var(--fff-accent);
+  outline-offset: 2px;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin-top: 0;
+}
