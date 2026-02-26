@@ -1,10 +1,14 @@
 // src/lib/api.ts
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL;
+import { supabase } from "./supabase";
 
-// DEV ONLY local header (leave blank in prod)
-export const TEST_USER_ID =
-  import.meta.env.VITE_FFF_TEST_USER_ID || "";
+// Base URL (required)
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
+if (!API_BASE_URL) {
+  throw new Error("Missing VITE_API_BASE_URL");
+}
+
+// DEV ONLY local header (never use in production)
+export const TEST_USER_ID = (import.meta.env.VITE_FFF_TEST_USER_ID as string) || "";
 
 // -----------------------------
 // Types
@@ -15,7 +19,6 @@ export type LeaderboardRow = {
   teams_alive: number;
   team_wins: number;
   rank: number;
-  // backend may add later
   display_name?: string;
 };
 
@@ -84,22 +87,29 @@ export type AuditResponse = {
 // Request helpers
 // -----------------------------
 export type RequestOptions = {
-  accessToken?: string | null; // Supabase token later
+  accessToken?: string | null; // optional override
   signal?: AbortSignal;
 };
 
-function buildHeaders(opts?: RequestOptions): HeadersInit {
+async function getAccessToken(opts?: RequestOptions): Promise<string> {
+  if (opts?.accessToken) return opts.accessToken;
+
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token ?? "";
+}
+
+async function buildHeaders(opts?: RequestOptions): Promise<HeadersInit> {
   const headers: Record<string, string> = {
     Accept: "application/json",
   };
 
-  // Production path (future)
-  if (opts?.accessToken) {
-    headers.Authorization = `Bearer ${opts.accessToken}`;
+  const token = await getAccessToken(opts);
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
-  // Local dev fallback
-  if (!opts?.accessToken && TEST_USER_ID) {
+  // Dev-only fallback (never allow this in production builds)
+  if (!token && TEST_USER_ID && import.meta.env.DEV) {
     headers["X-Test-User-Id"] = TEST_USER_ID;
   }
 
@@ -118,11 +128,12 @@ async function readError(res: Response, fallback: string): Promise<string> {
 async function requestJson<T>(
   url: URL,
   init: RequestInit,
-  fallbackError: string
+  fallbackError: string,
+  opts?: RequestOptions
 ): Promise<T> {
   const res = await fetch(url.toString(), {
-    credentials: "include",
     ...init,
+    headers: await buildHeaders(opts),
   });
 
   if (!res.ok) {
@@ -137,11 +148,7 @@ async function requestJson<T>(
 // API calls
 // -----------------------------
 export async function fetchLeaderboard(
-  params: {
-    leagueId: number;
-    tournamentId: number;
-    ttlSec?: number;
-  },
+  params: { leagueId: number; tournamentId: number; ttlSec?: number },
   opts?: RequestOptions
 ): Promise<LeaderboardResponse> {
   const { leagueId, tournamentId, ttlSec = 30 } = params;
@@ -152,22 +159,14 @@ export async function fetchLeaderboard(
 
   return requestJson<LeaderboardResponse>(
     url,
-    {
-      method: "GET",
-      headers: buildHeaders(opts),
-      signal: opts?.signal,
-    },
-    "Leaderboard fetch failed"
+    { method: "GET", signal: opts?.signal },
+    "Leaderboard fetch failed",
+    opts
   );
 }
 
 export async function fetchAdminGames(
-  params: {
-    tournamentId: number;
-    leagueId: number;
-    limit?: number;
-    offset?: number;
-  },
+  params: { tournamentId: number; leagueId: number; limit?: number; offset?: number },
   opts?: RequestOptions
 ): Promise<AdminGamesResponse> {
   const { tournamentId, leagueId, limit = 200, offset = 0 } = params;
@@ -180,49 +179,32 @@ export async function fetchAdminGames(
 
   return requestJson<AdminGamesResponse>(
     url,
-    {
-      method: "GET",
-      headers: buildHeaders(opts),
-      signal: opts?.signal,
-    },
-    "Admin games fetch failed"
+    { method: "GET", signal: opts?.signal },
+    "Admin games fetch failed",
+    opts
   );
 }
 
 export async function undoWinner(
-  params: {
-    gameId: number;
-    leagueId: number;
-    expectedVersion?: number;
-  },
+  params: { gameId: number; leagueId: number; expectedVersion?: number },
   opts?: RequestOptions
 ): Promise<AdminWinnerResponse> {
   const { gameId, leagueId, expectedVersion } = params;
 
   const url = new URL(`/admin/games/${gameId}/undo-winner`, API_BASE_URL);
   url.searchParams.set("league_id", String(leagueId));
-  if (expectedVersion !== undefined) {
-    url.searchParams.set("expected_version", String(expectedVersion));
-  }
+  if (expectedVersion !== undefined) url.searchParams.set("expected_version", String(expectedVersion));
 
   return requestJson<AdminWinnerResponse>(
     url,
-    {
-      method: "PATCH",
-      headers: buildHeaders(opts),
-      signal: opts?.signal,
-    },
-    "Undo winner failed"
+    { method: "PATCH", signal: opts?.signal },
+    "Undo winner failed",
+    opts
   );
 }
 
 export async function setWinner(
-  params: {
-    gameId: number;
-    winnerTeamId: number;
-    leagueId: number;
-    expectedVersion?: number;
-  },
+  params: { gameId: number; winnerTeamId: number; leagueId: number; expectedVersion?: number },
   opts?: RequestOptions
 ): Promise<AdminWinnerResponse> {
   const { gameId, winnerTeamId, leagueId, expectedVersion } = params;
@@ -230,28 +212,18 @@ export async function setWinner(
   const url = new URL(`/admin/games/${gameId}/winner`, API_BASE_URL);
   url.searchParams.set("winner_team_id", String(winnerTeamId));
   url.searchParams.set("league_id", String(leagueId));
-  if (expectedVersion !== undefined) {
-    url.searchParams.set("expected_version", String(expectedVersion));
-  }
+  if (expectedVersion !== undefined) url.searchParams.set("expected_version", String(expectedVersion));
 
   return requestJson<AdminWinnerResponse>(
     url,
-    {
-      method: "PATCH",
-      headers: buildHeaders(opts),
-      signal: opts?.signal,
-    },
-    "Set winner failed"
+    { method: "PATCH", signal: opts?.signal },
+    "Set winner failed",
+    opts
   );
 }
 
 export async function fetchAudit(
-  params: {
-    tournamentId: number;
-    leagueId: number;
-    limit?: number;
-    offset?: number;
-  },
+  params: { tournamentId: number; leagueId: number; limit?: number; offset?: number },
   opts?: RequestOptions
 ): Promise<AuditResponse> {
   const { tournamentId, leagueId, limit = 10, offset = 0 } = params;
@@ -264,12 +236,8 @@ export async function fetchAudit(
 
   return requestJson<AuditResponse>(
     url,
-    {
-      method: "GET",
-      headers: buildHeaders(opts),
-      signal: opts?.signal,
-    },
-    "Audit fetch failed"
+    { method: "GET", signal: opts?.signal },
+    "Audit fetch failed",
+    opts
   );
 }
-
