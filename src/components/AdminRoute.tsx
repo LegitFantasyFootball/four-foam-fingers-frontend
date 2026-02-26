@@ -1,12 +1,12 @@
 // src/components/AdminRoute.tsx
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 function isAdminEmail(email: string | null | undefined): boolean {
   const allow = (import.meta.env.VITE_ADMIN_EMAILS || "")
     .split(",")
-    .map((s) => s.trim().toLowerCase())
+    .map((s: string) => s.trim().toLowerCase())
     .filter(Boolean);
 
   if (!email) return false;
@@ -41,7 +41,13 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
   if (loading) return null;
 
   if (!email) {
-    return <Navigate to="/march-basketball-foam-fingers/login" replace state={{ from: location.pathname }} />;
+    return (
+      <Navigate
+        to="/march-basketball-foam-fingers/login"
+        replace
+        state={{ from: location.pathname }}
+      />
+    );
   }
 
   if (!isAdminEmail(email)) {
