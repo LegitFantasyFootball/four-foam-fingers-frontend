@@ -1,9 +1,10 @@
 //src/pages/CommissionerAssignmentsPage.tsx
-import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+// src/pages/CommissionerAssignmentsPage.tsx
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiFetchJson } from "../lib/api";
 
-type GenerateAssignmentsResponse = {
+type DealTeamsResponse = {
   league_id: number;
   assignments_created: number;
 };
@@ -34,32 +35,27 @@ export default function CommissionerAssignmentsPage() {
   const navigate = useNavigate();
   const { leagueId } = useParams<{ leagueId: string }>();
 
-  const [seed, setSeed] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoadingAssignments, setIsLoadingAssignments] = useState(false);
+  const [isDealing, setIsDealing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [result, setResult] = useState<GenerateAssignmentsResponse | null>(null);
+  const [dealResult, setDealResult] = useState<DealTeamsResponse | null>(null);
   const [assignmentsData, setAssignmentsData] = useState<LeagueAssignmentsResponse | null>(null);
   const [error, setError] = useState("");
 
   const leagueIdNum = Number(leagueId);
   const hasValidLeagueId = Number.isInteger(leagueIdNum) && leagueIdNum > 0;
 
-  const seedNum = Number(seed);
-  const includeSeed = seed.trim().length > 0 && Number.isInteger(seedNum);
-
-  const requestPath = useMemo(() => {
+  const dealPath = useMemo(() => {
     if (!hasValidLeagueId) return "";
-    const qs = new URLSearchParams();
-    if (includeSeed) qs.set("seed", String(seedNum));
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return `/commissioner/leagues/${leagueIdNum}/generate-assignments${suffix}`;
-  }, [hasValidLeagueId, leagueIdNum, includeSeed, seedNum]);
+    return `/commissioner/leagues/${leagueIdNum}/generate-assignments`;
+  }, [hasValidLeagueId, leagueIdNum]);
 
   const assignmentsPath = useMemo(() => {
     if (!hasValidLeagueId) return "";
     return `/commissioner/leagues/${leagueIdNum}/assignments`;
   }, [hasValidLeagueId, leagueIdNum]);
+
+  const hasAssignments = (assignmentsData?.assignment_count ?? 0) > 0;
 
   const fairnessRows = useMemo(() => {
     if (!assignmentsData) return [];
@@ -100,50 +96,46 @@ export default function CommissionerAssignmentsPage() {
   }, [fairnessRows]);
 
   async function loadAssignments() {
-    if (!hasValidLeagueId || isLoadingAssignments) return;
+    if (!hasValidLeagueId || isLoading) return;
 
-    setIsLoadingAssignments(true);
+    setIsLoading(true);
     setError("");
 
     try {
-      if (!assignmentsPath) throw new Error("Missing assignments path");
-
-      const data = await apiFetchJson<LeagueAssignmentsResponse>(assignmentsPath, {
-        method: "GET",
-      });
-
+      const data = await apiFetchJson<LeagueAssignmentsResponse>(assignmentsPath, { method: "GET" });
       setAssignmentsData(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Load assignments failed");
+      setError(e instanceof Error ? e.message : "Load dealt teams failed");
     } finally {
-      setIsLoadingAssignments(false);
+      setIsLoading(false);
     }
   }
 
-  async function handleGenerate() {
-    if (!hasValidLeagueId || isSubmitting) return;
+  async function handleDealTeams() {
+    if (!hasValidLeagueId || isDealing || hasAssignments) return;
 
-    setIsSubmitting(true);
+    setIsDealing(true);
     setError("");
-    setResult(null);
+    setDealResult(null);
 
     try {
-      if (!requestPath) throw new Error("Missing generate path");
+      const data = await apiFetchJson<DealTeamsResponse>(dealPath, { method: "POST" });
+      setDealResult(data);
 
-      const data = await apiFetchJson<GenerateAssignmentsResponse>(requestPath, {
-        method: "POST",
-      });
-
-      setResult(data);
-
-      // Auto-refresh assignments after successful generation
+      // Immediately load the dealt teams
       await loadAssignments();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Generate assignments failed");
+      setError(e instanceof Error ? e.message : "Deal teams failed");
     } finally {
-      setIsSubmitting(false);
+      setIsDealing(false);
     }
   }
+
+  // On load: try to fetch existing dealt teams.
+  useEffect(() => {
+    void loadAssignments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <main style={{ minHeight: "100vh", padding: 16 }}>
@@ -151,9 +143,9 @@ export default function CommissionerAssignmentsPage() {
         <SectionCard>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <div>
-              <h1 style={{ margin: 0, fontSize: 24 }}>League Assignments</h1>
+              <h1 style={{ margin: 0, fontSize: 24 }}>Deal Teams</h1>
               <p style={{ marginTop: 8, marginBottom: 0, color: "var(--fff-muted)" }}>
-                Generate randomized balanced assignments and inspect who got which teams.
+                One-time deal. Once teams are dealt, they cannot be re-dealt.
               </p>
             </div>
 
@@ -168,18 +160,14 @@ export default function CommissionerAssignmentsPage() {
               {hasValidLeagueId && (
                 <>
                   <button
-                    onClick={() =>
-                      navigate(`/march-basketball-foam-fingers/commissioner/league/${leagueIdNum}`)
-                    }
+                    onClick={() => navigate(`/march-basketball-foam-fingers/commissioner/league/${leagueIdNum}`)}
                     style={{ ...buttonBase, ...buttonSecondary }}
                   >
                     League Page
                   </button>
 
                   <button
-                    onClick={() =>
-                      navigate(`/march-basketball-foam-fingers/commissioner/league/${leagueIdNum}/invites`)
-                    }
+                    onClick={() => navigate(`/march-basketball-foam-fingers/commissioner/league/${leagueIdNum}/invites`)}
                     style={{ ...buttonBase, ...buttonSecondary }}
                   >
                     Invites
@@ -191,8 +179,6 @@ export default function CommissionerAssignmentsPage() {
         </SectionCard>
 
         <SectionCard>
-          <div style={{ fontWeight: 800, marginBottom: 10 }}>Context</div>
-
           {!hasValidLeagueId ? (
             <ErrorBox title="Invalid league ID" message="URL must include a valid positive league ID." />
           ) : (
@@ -201,104 +187,76 @@ export default function CommissionerAssignmentsPage() {
                 League ID: <strong>{leagueIdNum}</strong>
               </div>
 
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontSize: 13, color: "var(--fff-muted)" }}>Optional Seed (integer)</span>
-                <input
-                  inputMode="numeric"
-                  value={seed}
-                  onChange={(e) => setSeed(e.target.value.replace(/[^\d-]/g, ""))}
-                  placeholder="123"
-                  style={inputStyle}
-                />
-              </label>
-
               <div style={{ color: "var(--fff-muted)", fontSize: 13 }}>
-                Generate requires the league to be full and commissioner access. Then load assignments to inspect fairness.
+                This should only be done once, after the league is full.
               </div>
 
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {!hasAssignments ? (
                 <button
-                  onClick={handleGenerate}
-                  disabled={isSubmitting}
+                  onClick={handleDealTeams}
+                  disabled={isDealing}
                   style={{
                     ...buttonBase,
                     ...buttonPrimary,
-                    opacity: isSubmitting ? 0.6 : 1,
-                    cursor: isSubmitting ? "not-allowed" : "pointer",
+                    opacity: isDealing ? 0.6 : 1,
+                    cursor: isDealing ? "not-allowed" : "pointer",
                   }}
                 >
-                  {isSubmitting ? "Generating..." : "Generate Assignments"}
+                  {isDealing ? "Dealing..." : "Deal Teams"}
                 </button>
-
-                <button
-                  onClick={loadAssignments}
-                  disabled={isLoadingAssignments}
-                  style={{
-                    ...buttonBase,
-                    ...buttonSecondary,
-                    opacity: isLoadingAssignments ? 0.6 : 1,
-                    cursor: isLoadingAssignments ? "not-allowed" : "pointer",
-                  }}
-                >
-                  {isLoadingAssignments ? "Loading..." : "Load Assignments"}
-                </button>
-              </div>
+              ) : (
+                <div style={{ color: "var(--fff-muted)", fontSize: 13 }}>
+                  Teams are already dealt for this league.
+                </div>
+              )}
             </div>
           )}
         </SectionCard>
 
         {error && (
           <SectionCard>
-            <ErrorBox title="Assignments error" message={error} />
+            <ErrorBox title="Deal teams error" message={error} />
           </SectionCard>
         )}
 
-        {result && (
+        {dealResult && (
           <SectionCard>
-            <div style={{ fontWeight: 800, marginBottom: 10 }}>Generate Success</div>
+            <div style={{ fontWeight: 800, marginBottom: 10 }}>Deal Complete</div>
             <div style={{ display: "grid", gap: 6 }}>
               <div>
-                League ID: <strong>{result.league_id}</strong>
+                League ID: <strong>{dealResult.league_id}</strong>
               </div>
               <div>
-                Assignments Created: <strong>{result.assignments_created}</strong>
+                Teams Dealt: <strong>{dealResult.assignments_created}</strong>
               </div>
             </div>
 
             {hasValidLeagueId && (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
                 <button
-                  onClick={() =>
-                    navigate(`/march-basketball-foam-fingers/commissioner/league/${leagueIdNum}`)
-                  }
+                  onClick={() => navigate(`/march-basketball-foam-fingers/commissioner/league/${leagueIdNum}`)}
                   style={{ ...buttonBase, ...buttonSecondary }}
                 >
                   Back to League Page
                 </button>
 
-              <button
-                onClick={() => {
-                  const tournamentId = assignmentsData?.tournament_id;
-                  if (!tournamentId) return;
-                  navigate(
-                    `/march-basketball-foam-fingers/league/${leagueIdNum}/tournament/${tournamentId}/leaderboard`
-                  );
-                }}
-                disabled={!assignmentsData?.tournament_id}
-                style={{
-                  ...buttonBase,
-                  ...buttonPrimary,
-                  opacity: assignmentsData?.tournament_id ? 1 : 0.6,
-                  cursor: assignmentsData?.tournament_id ? "pointer" : "not-allowed",
-                }}
-                title={
-                  assignmentsData?.tournament_id
-                    ? `Open leaderboard for tournament ${assignmentsData.tournament_id}`
-                    : "Load assignments first"
-                }
-              >
-                Open Leaderboard
-              </button>
+                <button
+                  onClick={() => {
+                    const tournamentId = assignmentsData?.tournament_id;
+                    if (!tournamentId) return;
+                    navigate(`/march-basketball-foam-fingers/league/${leagueIdNum}/tournament/${tournamentId}/leaderboard`);
+                  }}
+                  disabled={!assignmentsData?.tournament_id}
+                  style={{
+                    ...buttonBase,
+                    ...buttonPrimary,
+                    opacity: assignmentsData?.tournament_id ? 1 : 0.6,
+                    cursor: assignmentsData?.tournament_id ? "pointer" : "not-allowed",
+                  }}
+                  title={assignmentsData?.tournament_id ? `Open leaderboard` : "No tournament loaded yet"}
+                >
+                  Open Leaderboard
+                </button>
               </div>
             )}
           </SectionCard>
@@ -307,11 +265,11 @@ export default function CommissionerAssignmentsPage() {
         {assignmentsData && (
           <>
             <SectionCard>
-              <div style={{ fontWeight: 800, marginBottom: 10 }}>Assignments Summary</div>
+              <div style={{ fontWeight: 800, marginBottom: 10 }}>Deal Summary</div>
               <div style={{ display: "grid", gap: 6 }}>
                 <div>League ID: <strong>{assignmentsData.league_id}</strong></div>
                 <div>Tournament ID: <strong>{assignmentsData.tournament_id}</strong></div>
-                <div>Total Assignments: <strong>{assignmentsData.assignment_count}</strong></div>
+                <div>Total Teams Dealt: <strong>{assignmentsData.assignment_count}</strong></div>
                 <div>Users: <strong>{assignmentsData.users.length}</strong></div>
               </div>
 
@@ -328,7 +286,7 @@ export default function CommissionerAssignmentsPage() {
             </SectionCard>
 
             <SectionCard>
-              <div style={{ fontWeight: 800, marginBottom: 10 }}>Per User Fairness</div>
+              <div style={{ fontWeight: 800, marginBottom: 10 }}>Per User Summary</div>
               <div style={{ display: "grid", gap: 8 }}>
                 {fairnessRows
                   .slice()
@@ -387,7 +345,6 @@ export default function CommissionerAssignmentsPage() {
   );
 }
 
-
 function SectionCard({ children }: { children: ReactNode }) {
   return (
     <div
@@ -430,15 +387,6 @@ const metaStyle: CSSProperties = {
   color: "var(--fff-muted)",
   fontSize: 13,
   marginTop: 4,
-};
-
-const inputStyle: CSSProperties = {
-  width: "100%",
-  border: "1px solid var(--fff-border)",
-  background: "rgba(255,255,255,0.04)",
-  color: "var(--fff-text)",
-  borderRadius: 10,
-  padding: "10px 12px",
 };
 
 const buttonBase: CSSProperties = {
