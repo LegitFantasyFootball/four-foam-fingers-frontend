@@ -11,25 +11,33 @@ type Props = {
 
 const GAME_BASE = "/march-basketball-foam-fingers";
 
-export default function FlowHelperNav({
-  leagueId,
-  tournamentId,
-  showCommissionerTools = false,
-}: Props) {
-  const navigate = useNavigate();
+const ADMIN_EMAILS = new Set(["jet@legitgamesinc.com", "todd@legitgamesinc.com"]);
 
+function isAdminEmail(email: string): boolean {
+  return ADMIN_EMAILS.has((email || "").trim().toLowerCase());
+}
+
+export default function FlowHelperNav({ leagueId, tournamentId, showCommissionerTools = false }: Props) {
+  const navigate = useNavigate();
   const [email, setEmail] = useState<string>("");
 
   useEffect(() => {
+    let alive = true;
+
     supabase.auth.getSession().then(({ data }) => {
+      if (!alive) return;
       setEmail(data.session?.user?.email ?? "");
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
+      if (!alive) return;
       setEmail(session?.user?.email ?? "");
     });
 
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      alive = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   async function logout() {
@@ -39,48 +47,39 @@ export default function FlowHelperNav({
 
   const hasLeague = Number.isInteger(leagueId) && (leagueId ?? 0) > 0;
   const hasTournament = Number.isInteger(tournamentId) && (tournamentId ?? 0) > 0;
+  const showAdmin = isAdminEmail(email);
 
   return (
     <div style={wrapStyle}>
       <div style={chipsWrapStyle}>
-        <button
-          onClick={() => navigate(`${GAME_BASE}/lets-go`)}
-          style={{ ...chipButtonBase, ...chipSecondary }}
-        >
+        {showAdmin && (
+          <button onClick={() => navigate(`${GAME_BASE}/admin`)} style={{ ...chipButtonBase, ...chipSecondary }}>
+            Admin
+          </button>
+        )}
+
+        <button onClick={() => navigate(`${GAME_BASE}/lets-go`)} style={{ ...chipButtonBase, ...chipSecondary }}>
           Home
         </button>
 
-        <button
-          onClick={() => navigate(`${GAME_BASE}/player/my-leagues`)}
-          style={{ ...chipButtonBase, ...chipSecondary }}
-        >
+        <button onClick={() => navigate(`${GAME_BASE}/player/my-leagues`)} style={{ ...chipButtonBase, ...chipSecondary }}>
           My Leagues
         </button>
 
-        <button
-          onClick={() => navigate(`${GAME_BASE}/player/join`)}
-          style={{ ...chipButtonBase, ...chipSecondary }}
-        >
+        <button onClick={() => navigate(`${GAME_BASE}/player/join`)} style={{ ...chipButtonBase, ...chipSecondary }}>
           Join League
         </button>
 
         {hasLeague && hasTournament && (
           <button
-            onClick={() =>
-              navigate(
-                `${GAME_BASE}/league/${leagueId}/tournament/${tournamentId}/live-bracket`
-              )
-            }
+            onClick={() => navigate(`${GAME_BASE}/league/${leagueId}/tournament/${tournamentId}/live-bracket`)}
             style={{ ...chipButtonBase, ...chipSecondary }}
           >
             Live Bracket
           </button>
         )}
 
-        <button
-          onClick={() => navigate(`${GAME_BASE}/commissioner/leagues/new`)}
-          style={{ ...chipButtonBase, ...chipSecondary }}
-        >
+        <button onClick={() => navigate(`${GAME_BASE}/commissioner/leagues/new`)} style={{ ...chipButtonBase, ...chipSecondary }}>
           Create League
         </button>
 
@@ -95,11 +94,7 @@ export default function FlowHelperNav({
 
         {hasLeague && hasTournament && (
           <button
-            onClick={() =>
-              navigate(
-                `${GAME_BASE}/league/${leagueId}/tournament/${tournamentId}/leaderboard`
-              )
-            }
+            onClick={() => navigate(`${GAME_BASE}/league/${leagueId}/tournament/${tournamentId}/leaderboard`)}
             style={{ ...chipButtonBase, ...chipSecondary }}
           >
             Leaderboard
@@ -108,10 +103,7 @@ export default function FlowHelperNav({
 
         {showCommissionerTools && hasLeague && (
           <>
-            <button
-              onClick={() => navigate(`${GAME_BASE}/commissioner/league/${leagueId}`)}
-              style={{ ...chipButtonBase, ...chipSecondary }}
-            >
+            <button onClick={() => navigate(`${GAME_BASE}/commissioner/league/${leagueId}`)} style={{ ...chipButtonBase, ...chipSecondary }}>
               League Page
             </button>
 
@@ -123,9 +115,7 @@ export default function FlowHelperNav({
             </button>
 
             <button
-              onClick={() =>
-                navigate(`${GAME_BASE}/commissioner/league/${leagueId}/assignments`)
-              }
+              onClick={() => navigate(`${GAME_BASE}/commissioner/league/${leagueId}/assignments`)}
               style={{ ...chipButtonBase, ...chipSecondary }}
             >
               Assignments
@@ -133,24 +123,16 @@ export default function FlowHelperNav({
           </>
         )}
 
-        {/* Auth chips (right side-ish; still scrollable) */}
+        {/* Auth chips */}
         {email ? (
           <>
-            <span style={{ ...chipButtonBase, ...chipGhost }}>
-              {email}
-            </span>
-            <button
-              onClick={logout}
-              style={{ ...chipButtonBase, ...chipPrimary }}
-            >
+            <span style={{ ...chipButtonBase, ...chipGhost }}>{email}</span>
+            <button onClick={logout} style={{ ...chipButtonBase, ...chipPrimary }}>
               Log out
             </button>
           </>
         ) : (
-          <button
-            onClick={() => navigate(`${GAME_BASE}/login`)}
-            style={{ ...chipButtonBase, ...chipPrimary }}
-          >
+          <button onClick={() => navigate(`${GAME_BASE}/login`)} style={{ ...chipButtonBase, ...chipPrimary }}>
             Sign in
           </button>
         )}

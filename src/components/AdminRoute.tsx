@@ -1,20 +1,22 @@
 // src/components/AdminRoute.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
-function isAdminEmail(email: string | null | undefined): boolean {
-  const allow = (import.meta.env.VITE_ADMIN_EMAILS || "")
-    .split(",")
-    .map((s: string) => s.trim().toLowerCase())
-    .filter(Boolean);
+const GAME_BASE = "/march-basketball-foam-fingers";
 
-  if (!email) return false;
-  return allow.includes(email.toLowerCase());
+function parseAllowlist(): Set<string> {
+  const raw = String(import.meta.env.VITE_ADMIN_EMAILS || "");
+  const emails = raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return new Set(emails);
 }
 
 export default function AdminRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const allow = useMemo(() => parseAllowlist(), []);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState<string>("");
 
@@ -40,36 +42,14 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
 
   if (loading) return null;
 
+  // no session -> login
   if (!email) {
-    return (
-      <Navigate
-        to="/march-basketball-foam-fingers/login"
-        replace
-        state={{ from: location.pathname }}
-      />
-    );
+    return <Navigate to={`${GAME_BASE}/login`} replace state={{ from: location.pathname }} />;
   }
 
-  if (!isAdminEmail(email)) {
-    return (
-      <main style={{ minHeight: "100vh", padding: 16 }}>
-        <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          <div
-            style={{
-              border: "1px solid var(--fff-border)",
-              background: "var(--fff-surface)",
-              borderRadius: 12,
-              padding: 16,
-            }}
-          >
-            <h2 style={{ marginTop: 0 }}>Admin access required</h2>
-            <p style={{ marginBottom: 0, color: "var(--fff-muted)" }}>
-              You do not have permission to view this page.
-            </p>
-          </div>
-        </div>
-      </main>
-    );
+  // has session but not allowed -> bounce to lets-go
+  if (!allow.has(email.trim().toLowerCase())) {
+    return <Navigate to={`${GAME_BASE}/lets-go`} replace />;
   }
 
   return <>{children}</>;

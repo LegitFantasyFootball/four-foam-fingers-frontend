@@ -32,9 +32,8 @@ export default function App() {
     <Routes>
       <Route path="/" element={<HomePage />} />
 
-      {/* Everything under GAME_BASE requires auth */}
+      {/* Everything under GAME_BASE requires auth (except /login) */}
       <Route path={GAME_BASE} element={<AuthGate />}>
-        {/* Relative paths from here down */}
         <Route path="login" element={<LoginPage />} />
 
         <Route element={<AppShell />}>
@@ -42,10 +41,7 @@ export default function App() {
           <Route path="lets-go" element={<LetsGoPage />} />
 
           {/* Commissioner */}
-          <Route
-            path="commissioner"
-            element={<Navigate to="/march-basketball-foam-fingers/commissioner/leagues/new" replace />}
-          />
+          <Route path="commissioner" element={<Navigate to="commissioner/leagues/new" replace />} />
           <Route path="commissioner/leagues/new" element={<CreateLeaguePage />} />
           <Route path="commissioner/league/:leagueId" element={<CommissionerLeaguePage />} />
           <Route path="commissioner/league/:leagueId/invites" element={<CommissionerInvitesPage />} />
@@ -89,10 +85,11 @@ export default function App() {
 
         {/* Scoped fallbacks */}
         <Route path="admin/*" element={<Navigate to="admin" replace />} />
-        <Route path="commissioner/*" element={<Navigate to="/march-basketball-foam-fingers/commissioner/leagues/new" replace />} />
+        <Route path="commissioner/*" element={<Navigate to="commissioner/leagues/new" replace />} />
         <Route path="*" element={<Navigate to="lets-go" replace />} />
       </Route>
 
+      {/* global fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

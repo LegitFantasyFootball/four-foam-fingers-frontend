@@ -1,4 +1,4 @@
-
+//src/pages/AdminTournamentFieldsSetupPage.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { apiFetchJson } from "../lib/api";
 /**
