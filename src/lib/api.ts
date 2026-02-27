@@ -131,9 +131,14 @@ async function requestJson<T>(
   fallbackError: string,
   opts?: RequestOptions
 ): Promise<T> {
+  const authHeaders = await buildHeaders(opts);
+
   const res = await fetch(url.toString(), {
     ...init,
-    headers: await buildHeaders(opts),
+    headers: {
+      ...authHeaders,
+      ...(init.headers as Record<string, string> | undefined),
+    },
   });
 
   if (!res.ok) {
@@ -143,7 +148,6 @@ async function requestJson<T>(
 
   return res.json() as Promise<T>;
 }
-
 // -----------------------------
 // API calls
 // -----------------------------
