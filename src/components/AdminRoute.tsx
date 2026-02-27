@@ -9,7 +9,7 @@ function parseAllowList(): string[] {
   const raw = (import.meta.env.VITE_ADMIN_EMAILS || "").trim();
   const list = raw
     .split(",")
-    .map((s) => s.trim().toLowerCase())
+    .map((s: string) => s.trim().toLowerCase())
     .filter(Boolean);
 
   return list.length ? list : FALLBACK_ADMINS;
