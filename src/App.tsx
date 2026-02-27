@@ -44,7 +44,7 @@ export default function App() {
           {/* Commissioner */}
           <Route
             path="commissioner"
-            element={<Navigate to="commissioner/leagues/new" replace />}
+            element={<Navigate to="leagues/new" replace />}
           />
           <Route path="commissioner/leagues/new" element={<CreateLeaguePage />} />
           <Route path="commissioner/league/:leagueId" element={<CommissionerLeaguePage />} />
@@ -89,7 +89,7 @@ export default function App() {
 
         {/* Scoped fallbacks */}
         <Route path="admin/*" element={<Navigate to="admin" replace />} />
-        <Route path="commissioner/*" element={<Navigate to="commissioner/leagues/new" replace />} />
+        <Route path="commissioner/*" element={<Navigate to="leagues/new" replace />} />
         <Route path="*" element={<Navigate to="lets-go" replace />} />
       </Route>
 
