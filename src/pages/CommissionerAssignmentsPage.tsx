@@ -22,6 +22,7 @@ type AssignmentTeam = {
 type AssignmentUser = {
   user_id: number;
   teams: AssignmentTeam[];
+  display_name?: string;
 };
 
 type LeagueAssignmentsResponse = {
@@ -308,7 +309,7 @@ export default function CommissionerAssignmentsPage() {
               .map((user) => (
                 <SectionCard key={user.user_id}>
                   <div style={{ fontWeight: 800, marginBottom: 10 }}>
-                    User {user.user_id} ({user.teams.length} teams)
+                    {user.display_name ?? `User ${user.user_id}`} ({user.teams.length} teams)
                   </div>
 
                   <div style={{ display: "grid", gap: 8 }}>
