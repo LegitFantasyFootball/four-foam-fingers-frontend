@@ -136,8 +136,8 @@ async function requestJson<T>(
   const res = await fetch(url.toString(), {
     ...init,
     headers: {
-      ...authHeaders,
-      ...(init.headers as Record<string, string> | undefined),
+      ...(init.headers ?? {}),     // keep caller headers first (Content-Type, etc)
+      ...authHeaders,              // then add/override auth + Accept
     },
   });
 
@@ -146,7 +146,7 @@ async function requestJson<T>(
     throw new Error(`${fallbackError} (${res.status}): ${text}`);
   }
 
-  return res.json() as Promise<T>;
+  return (await res.json()) as T;
 }
 // -----------------------------
 // API calls
