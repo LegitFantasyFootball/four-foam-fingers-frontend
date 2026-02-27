@@ -35,7 +35,6 @@ export default function MyLeaguesPage() {
 
     try {
       const json = await apiFetchJson<MyLeaguesResponse>("/player/leagues/mine", { method: "GET" });
-
       setData(json);
       void loadLeagueRanks(json.leagues, json.user_id);
     } catch (e) {
@@ -46,7 +45,6 @@ export default function MyLeaguesPage() {
   }
 
   async function loadLeagueRanks(leagues: MyLeague[], userId: number) {
-    // reset to "unknown" while loading
     const initial: Record<number, number | null> = {};
     for (const l of leagues) initial[l.league_id] = null;
     setLeagueRanks(initial);
@@ -69,10 +67,9 @@ export default function MyLeaguesPage() {
       for (const [leagueId, rank] of results) next[leagueId] = rank;
       setLeagueRanks(next);
     } catch {
-      // If leaderboard fetch fails, keep ranks as null (don’t block page)
+      // keep ranks as null
     }
   }
-
 
   useEffect(() => {
     void loadMyLeagues();
@@ -82,9 +79,7 @@ export default function MyLeaguesPage() {
   const leagues = useMemo(() => {
     const list = data?.leagues ?? [];
     return [...list].sort((a, b) => {
-      // full leagues first
       if (a.is_full !== b.is_full) return a.is_full ? -1 : 1;
-      // then name
       const an = (a.league_name || "").toLowerCase();
       const bn = (b.league_name || "").toLowerCase();
       return an.localeCompare(bn);
@@ -102,83 +97,137 @@ export default function MyLeaguesPage() {
 
         {!data && !error && (
           <SectionCard>
-            <div style={{ color: "var(--fff-muted)" }}>
-              {isLoading ? "Loading..." : "No data yet."}
-            </div>
+            <div style={{ color: "var(--fff-muted)" }}>{isLoading ? "Loading..." : "No data yet."}</div>
           </SectionCard>
         )}
 
         {data && leagues.length === 0 && (
           <SectionCard>
             <div style={{ fontWeight: 800, marginBottom: 6 }}>No leagues yet</div>
-            <div style={{ color: "var(--fff-muted)", fontSize: 13 }}>
-              Join a league to see it here.
-            </div>
+            <div style={{ color: "var(--fff-muted)", fontSize: 13 }}>Join a league to see it here.</div>
           </SectionCard>
         )}
 
         {data && leagues.length > 0 && (
           <div style={{ display: "grid", gap: 10 }}>
-            {leagues.map((league) => (
-              <div key={league.league_id} style={leagueCard}>
-                <div style={{ display: "grid", gap: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                    <div style={{ fontWeight: 900, fontSize: 16, minWidth: 0 }}>
-                      <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {league.league_name?.trim() || "League"}
+            {leagues.map((league) => {
+              const isCommissioner = (league.role || "").toLowerCase() === "commissioner";
+
+              return (
+                <div key={league.league_id} style={leagueCard}>
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 10,
+                      }}
+                    >
+                      <div style={{ fontWeight: 900, fontSize: 16, minWidth: 0 }}>
+                        <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {league.league_name?.trim() || "League"}
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        {isCommissioner && <Pill tone="accent">Commissioner</Pill>}
+                        <Pill tone={league.is_full ? "accent" : "default"}>{league.is_full ? "Full" : "Open"}</Pill>
                       </div>
                     </div>
 
-                    <Pill tone={league.is_full ? "accent" : "default"}>
-                      {league.is_full ? "Full" : "Open"}
-                    </Pill>
-                  </div>
+                    <div style={subLine}>
+                      Players {league.players_joined}/{league.user_count_target}
+                    </div>
 
-                  <div style={subLine}>
-                    Players {league.players_joined}/{league.user_count_target}
-                  </div>
+                    <div style={subLine}>Place {leagueRanks[league.league_id] ?? "-"}</div>
 
-                  <div style={subLine}>
-                    Place {leagueRanks[league.league_id] ?? "-"}
-                  </div>
-
-                  <div style={{ display: "grid", gap: 8 }}>
-                    <button
-                      onClick={() =>
-                        navigate(`/march-basketball-foam-fingers/player/league/${league.league_id}/my-teams`)
-                      }
-                      style={{ ...buttonBase, ...buttonPrimary }}
-                    >
-                      My Teams
-                    </button>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <div style={{ display: "grid", gap: 8 }}>
                       <button
                         onClick={() =>
-                          navigate(
-                            `/march-basketball-foam-fingers/league/${league.league_id}/tournament/${league.tournament_id}/leaderboard`
-                          )
+                          navigate(`/march-basketball-foam-fingers/player/league/${league.league_id}/my-teams`)
                         }
-                        style={{ ...buttonBase, ...buttonSecondary }}
+                        style={{ ...buttonBase, ...buttonPrimary }}
                       >
-                        Leaderboard
+                        My Teams
                       </button>
 
-                      <button
-                        onClick={() =>
-                          navigate(
-                            `/march-basketball-foam-fingers/league/${league.league_id}/tournament/${league.tournament_id}/live-bracket`
-                          )
-                        }
-                        style={{ ...buttonBase, ...buttonSecondary }}
-                      >
-                        Bracket
-                      </button>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <button
+                          onClick={() =>
+                            navigate(
+                              `/march-basketball-foam-fingers/league/${league.league_id}/tournament/${league.tournament_id}/leaderboard`
+                            )
+                          }
+                          style={{ ...buttonBase, ...buttonSecondary }}
+                        >
+                          Leaderboard
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            navigate(
+                              `/march-basketball-foam-fingers/league/${league.league_id}/tournament/${league.tournament_id}/live-bracket`
+                            )
+                          }
+                          style={{ ...buttonBase, ...buttonSecondary }}
+                        >
+                          Bracket
+                        </button>
+                      </div>
+
+                      {isCommissioner && (
+                        <div style={{ display: "grid", gap: 8, marginTop: 2 }}>
+                          <div style={{ fontWeight: 900, fontSize: 12, color: "var(--fff-muted)" }}>
+                            Commissioner tools
+                          </div>
+
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                            <button
+                              onClick={() =>
+                                navigate(`/march-basketball-foam-fingers/commissioner/league/${league.league_id}`)
+                              }
+                              style={{ ...buttonBase, ...buttonSecondary }}
+                            >
+                              League Page
+                            </button>
+
+                            <button
+                              onClick={() =>
+                                navigate(
+                                  `/march-basketball-foam-fingers/commissioner/league/${league.league_id}/invites`
+                                )
+                              }
+                              style={{ ...buttonBase, ...buttonSecondary }}
+                            >
+                              Invites
+                            </button>
+                          </div>
+
+                          <button
+                            disabled={!league.is_full}
+                            onClick={() =>
+                              navigate(
+                                `/march-basketball-foam-fingers/commissioner/league/${league.league_id}/assignments`
+                              )
+                            }
+                            style={{
+                              ...buttonBase,
+                              ...(league.is_full ? buttonPrimary : buttonSecondary),
+                              opacity: league.is_full ? 1 : 0.55,
+                              cursor: league.is_full ? "pointer" : "not-allowed",
+                            }}
+                            title={league.is_full ? "" : "League must be full first"}
+                          >
+                            Deal Assignments
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -256,7 +305,7 @@ const buttonBase: CSSProperties = {
 };
 
 const buttonPrimary: CSSProperties = {
-  background: "rgba(255,255,255,0.04)", // subtle, same family as secondary
+  background: "rgba(255,255,255,0.04)",
   color: "var(--fff-text)",
   border: "1px solid var(--fff-border)",
 };
@@ -264,4 +313,5 @@ const buttonPrimary: CSSProperties = {
 const buttonSecondary: CSSProperties = {
   background: "rgba(255,255,255,0.04)",
   color: "var(--fff-text)",
+  border: "1px solid var(--fff-border)",
 };
