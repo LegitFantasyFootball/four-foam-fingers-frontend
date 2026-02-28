@@ -36,6 +36,7 @@ export default function App() {
       <Route path={GAME_BASE} element={<AuthGate />}>
         <Route path="login" element={<LoginPage />} />
 
+        {/* App shell for normal pages */}
         <Route element={<AppShell />}>
           <Route index element={<GameLobbyPage />} />
           <Route path="lets-go" element={<LetsGoPage />} />
@@ -52,12 +53,12 @@ export default function App() {
           <Route path="player/my-leagues" element={<MyLeaguesPage />} />
           <Route path="player/league/:leagueId/my-teams" element={<MyTeamsPage />} />
 
-          {/* League + tournament scoped views */}
+          {/* League + tournament scoped */}
           <Route path="league/:leagueId/tournament/:tournamentId/leaderboard" element={<LeaderboardPage />} />
           <Route path="league/:leagueId/tournament/:tournamentId/live-bracket" element={<LiveBracketPage />} />
         </Route>
 
-        {/* Admin routes (still under auth + AdminRoute) */}
+        {/* Admin (tournament-scoped via query params) */}
         <Route
           path="admin"
           element={
@@ -75,7 +76,7 @@ export default function App() {
           }
         />
         <Route
-          path="league/:leagueId/tournament/:tournamentId/admin-winners"
+          path="admin/admin-winners"
           element={
             <AdminRoute>
               <AdminWinnersPage />
@@ -83,8 +84,8 @@ export default function App() {
           }
         />
 
-        {/* Scoped fallbacks */}
-        <Route path="admin/*" element={<Navigate to="admin" replace />} />
+        {/* Scoped fallbacks (IMPORTANT: absolute, to prevent /admin/admin/admin loops) */}
+        <Route path="admin/*" element={<Navigate to={`${GAME_BASE}/admin`} replace />} />
         <Route path="commissioner/*" element={<Navigate to="commissioner/leagues/new" replace />} />
         <Route path="*" element={<Navigate to="lets-go" replace />} />
       </Route>
