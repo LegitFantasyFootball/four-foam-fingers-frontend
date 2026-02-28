@@ -327,3 +327,23 @@ export async function undoWinnerAdmin(
     opts
   );
 }
+
+export async function fetchBracketGames(
+  params: { leagueId: number; tournamentId: number; limit?: number; offset?: number },
+  opts?: RequestOptions
+): Promise<AdminGamesResponse> {
+  const { leagueId, tournamentId, limit = 200, offset = 0 } = params;
+
+  const url = new URL("/player/bracket", API_BASE_URL);
+  url.searchParams.set("league_id", String(leagueId));
+  url.searchParams.set("tournament_id", String(tournamentId));
+  url.searchParams.set("limit", String(limit));
+  url.searchParams.set("offset", String(offset));
+
+  return requestJson<AdminGamesResponse>(
+    url,
+    { method: "GET", signal: opts?.signal },
+    "Bracket fetch failed",
+    opts
+  );
+}

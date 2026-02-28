@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { fetchAdminGames, type AdminGame } from "../lib/api";
-
+import { fetchBracketGames, type AdminGame } from "../lib/api";
 
 
 const REGION_ORDER = ["South", "West", "East", "Midwest"] as const;
@@ -58,12 +57,12 @@ export default function LiveBracketPage() {
     setError(null);
     setLoading(true);
 
-    const data = await fetchAdminGames({
-      tournamentId: tournamentIdNum,
-      leagueId: leagueIdNum,
-      limit: 200,
-      offset: 0,
-    });
+  const data = await fetchBracketGames({
+    leagueId: leagueIdNum,
+    tournamentId: tournamentIdNum,
+    limit: 200,
+    offset: 0,
+  });
 
     setGames(data.items ?? []);
     setLastUpdated(new Date().toLocaleTimeString());
