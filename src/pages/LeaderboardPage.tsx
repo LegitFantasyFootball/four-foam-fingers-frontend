@@ -83,22 +83,7 @@ export default function LeaderboardPage() {
             {refreshing ? "Refreshing..." : "Refresh Leaderboard"}
           </button>
 
-          <button
-            disabled={!hasValidParams}
-            onClick={() =>
-              navigate(
-                `/march-basketball-foam-fingers/league/${leagueIdNum}/tournament/${tournamentIdNum}/admin-winners`
-              )
-            }
-            style={{
-              border: "1px solid var(--fff-border)",
-              background: "rgba(255,255,255,0.04)",
-              color: "var(--fff-text)",
-              fontWeight: 600,
-            }}
-          >
-            Admin Winners Page
-          </button>
+
         </div>
 
         <SectionCard>

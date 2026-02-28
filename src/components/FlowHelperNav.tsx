@@ -12,7 +12,7 @@ type Props = {
 
 const GAME_BASE = "/march-basketball-foam-fingers";
 
-const ADMIN_EMAILS = new Set(["jet@legitgamesinc.com", "todd@legitgamesinc.com"]);
+const ADMIN_EMAILS = new Set(["jet@legitgamesinc.com", "todd@legitgamesinc.com", "dimetrius@legitgamesinc.com"]);
 
 function isAdminEmail(email: string): boolean {
   return ADMIN_EMAILS.has((email || "").trim().toLowerCase());

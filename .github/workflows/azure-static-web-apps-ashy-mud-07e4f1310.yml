@@ -23,7 +23,7 @@ jobs:
     env:
       # Build-time Vite env
       VITE_API_BASE_URL: https://ca-foamfingers-api.salmonocean-e3fc600a.centralus.azurecontainerapps.io
-      VITE_ADMIN_EMAILS: jet@legitgamesinc.com,todd@legitgamesinc.com
+      VITE_ADMIN_EMAILS: jet@legitgamesinc.com,todd@legitgamesinc.com,dimetrius@legitgamesinc.com
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 

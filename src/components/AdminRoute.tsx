@@ -5,7 +5,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 const GAME_BASE = "/march-basketball-foam-fingers";
-const FALLBACK_ADMINS = ["jet@legitgamesinc.com", "todd@legitgamesinc.com"];
+const FALLBACK_ADMINS = ["jet@legitgamesinc.com", "todd@legitgamesinc.com", "dimetrius@legitgamesinc.com"];
 
 function parseAllowList(): string[] {
   const raw = (import.meta.env.VITE_ADMIN_EMAILS || "").trim();

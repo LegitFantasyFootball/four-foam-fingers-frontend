@@ -36,7 +36,7 @@ export default function App() {
       <Route path={GAME_BASE} element={<AuthGate />}>
         <Route path="login" element={<LoginPage />} />
 
-        {/* App shell for normal pages */}
+        {/* App shell for ALL authed pages (nav always visible) */}
         <Route element={<AppShell />}>
           <Route index element={<GameLobbyPage />} />
           <Route path="lets-go" element={<LetsGoPage />} />
@@ -56,38 +56,38 @@ export default function App() {
           {/* League + tournament scoped */}
           <Route path="league/:leagueId/tournament/:tournamentId/leaderboard" element={<LeaderboardPage />} />
           <Route path="league/:leagueId/tournament/:tournamentId/live-bracket" element={<LiveBracketPage />} />
+
+          {/* Admin (still protected, but now inside AppShell so nav stays) */}
+          <Route
+            path="admin"
+            element={
+              <AdminRoute>
+                <AdminConsolePage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="admin/tournament-field-setup"
+            element={
+              <AdminRoute>
+                <AdminTournamentFieldsSetupPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="admin/admin-winners"
+            element={
+              <AdminRoute>
+                <AdminWinnersPage />
+              </AdminRoute>
+            }
+          />
+
+          {/* Scoped fallbacks (IMPORTANT: absolute, to prevent /admin/admin/admin loops) */}
+          <Route path="admin/*" element={<Navigate to={`${GAME_BASE}/admin`} replace />} />
+          <Route path="commissioner/*" element={<Navigate to="commissioner/leagues/new" replace />} />
+          <Route path="*" element={<Navigate to="lets-go" replace />} />
         </Route>
-
-        {/* Admin (tournament-scoped via query params) */}
-        <Route
-          path="admin"
-          element={
-            <AdminRoute>
-              <AdminConsolePage />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="admin/tournament-field-setup"
-          element={
-            <AdminRoute>
-              <AdminTournamentFieldsSetupPage />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="admin/admin-winners"
-          element={
-            <AdminRoute>
-              <AdminWinnersPage />
-            </AdminRoute>
-          }
-        />
-
-        {/* Scoped fallbacks (IMPORTANT: absolute, to prevent /admin/admin/admin loops) */}
-        <Route path="admin/*" element={<Navigate to={`${GAME_BASE}/admin`} replace />} />
-        <Route path="commissioner/*" element={<Navigate to="commissioner/leagues/new" replace />} />
-        <Route path="*" element={<Navigate to="lets-go" replace />} />
       </Route>
 
       {/* global fallback */}

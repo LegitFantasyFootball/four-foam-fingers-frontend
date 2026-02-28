@@ -104,12 +104,7 @@ export default function MyTeamsPage() {
             </div>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button
-                onClick={() => navigate("/march-basketball-foam-fingers/lets-go")}
-                style={{ ...buttonBase, ...buttonSecondary }}
-              >
-                Back
-              </button>
+
 
                 {hasValidLeagueId && (
                 <button
@@ -132,18 +127,6 @@ export default function MyTeamsPage() {
                 </button>
                 )}
 
-              <button
-                onClick={() => void loadMyTeams()}
-                disabled={!hasValidLeagueId || isLoading}
-                style={{
-                  ...buttonBase,
-                  ...buttonSecondary,
-                  opacity: !hasValidLeagueId || isLoading ? 0.6 : 1,
-                  cursor: !hasValidLeagueId || isLoading ? "not-allowed" : "pointer",
-                }}
-              >
-                {isLoading ? "Refreshing..." : "Refresh"}
-              </button>
             </div>
           </div>
         </SectionCard>
@@ -187,7 +170,7 @@ export default function MyTeamsPage() {
                       <div key={team.team_id} style={rowStyle}>
                         <div style={{ fontWeight: 700 }}>{team.team_name}</div>
                         <div style={metaStyle}>
-                          Seed {team.seed ?? "-"} • {team.region ?? "?"} • slot {team.slot_in_tier ?? "-"} • rank{" "}
+                            Seed {team.seed ?? "-"} • {team.region ?? "?"}
                           {team.rank_1_to_64 ?? "-"}
                         </div>
                       </div>

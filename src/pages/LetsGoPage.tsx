@@ -30,10 +30,10 @@ export default function LetsGoPage() {
 
      
         <button
-          onClick={() => navigate("/march-basketball-foam-fingers/commissioner")}
-          style={{ ...buttonBase, ...buttonPrimary, minHeight: 64, fontSize: 18 }}
+        onClick={() => navigate("/march-basketball-foam-fingers/commissioner/leagues/new")}
+        style={{ ...buttonBase, ...buttonPrimary, minHeight: 64, fontSize: 18 }}
         >
-          Commissioner
+        Commissioner
         </button>
 
         <div style={{ textAlign: "center", color: "var(--fff-muted)", fontWeight: 700 }}>OR</div>
