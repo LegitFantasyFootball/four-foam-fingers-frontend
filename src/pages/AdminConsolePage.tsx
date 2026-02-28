@@ -136,6 +136,9 @@ export default function AdminConsolePage() {
           >
             Next
           </button>
+
+          </div>
+
           <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
             <label style={{ display: "grid", gap: 6 }}>
               <span style={{ fontSize: 13, color: "var(--fff-muted)" }}>Select Tournament</span>
