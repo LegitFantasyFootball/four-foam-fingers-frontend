@@ -1,8 +1,10 @@
 // src/components/AdminRoute.tsx
+// src/components/AdminRoute.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
+const GAME_BASE = "/march-basketball-foam-fingers";
 const FALLBACK_ADMINS = ["jet@legitgamesinc.com", "todd@legitgamesinc.com"];
 
 function parseAllowList(): string[] {
@@ -13,6 +15,13 @@ function parseAllowList(): string[] {
     .filter(Boolean);
 
   return list.length ? list : FALLBACK_ADMINS;
+}
+
+function safeReturnPath(pathname: string, search: string): string {
+  const p = pathname || "";
+  const s = search || "";
+  if (p.startsWith(GAME_BASE)) return `${p}${s}`;
+  return `${GAME_BASE}/admin`;
 }
 
 export default function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -44,12 +53,14 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
 
   if (loading) return null;
 
+  const from = safeReturnPath(location.pathname, location.search);
+
   if (!email) {
     return (
       <Navigate
-        to="/march-basketball-foam-fingers/login"
+        to={`${GAME_BASE}/login`}
         replace
-        state={{ from: location.pathname }}
+        state={{ from }}
       />
     );
   }

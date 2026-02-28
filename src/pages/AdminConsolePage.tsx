@@ -196,21 +196,7 @@ export default function AdminConsolePage() {
               Admin Winners Console
             </button>
 
-            <button
-              disabled={!hasTournament}
-              onClick={() => go(`/admin/leaderboard?tournament_id=:tournamentId`)}
-              style={buttonSecondary}
-            >
-              Leaderboard
-            </button>
 
-            <button
-              disabled={!hasTournament}
-              onClick={() => go(`/admin/live-bracket?tournament_id=:tournamentId`)}
-              style={buttonSecondary}
-            >
-              Live Bracket
-            </button>
           </div>
 
           <div style={{ marginTop: 10, color: "var(--fff-muted)", fontSize: 12 }}>

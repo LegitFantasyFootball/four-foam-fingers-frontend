@@ -1,11 +1,21 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 const GAME_BASE = "/march-basketball-foam-fingers";
 
+function normalizeFrom(from: unknown): string {
+  const s = typeof from === "string" ? from : "";
+  if (s.startsWith(GAME_BASE)) return s;
+  return `${GAME_BASE}/lets-go`;
+}
+
 export default function LoginPage() {
   const nav = useNavigate();
+  const location = useLocation();
+
+  const from = normalizeFrom((location.state as any)?.from);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -14,12 +24,12 @@ export default function LoginPage() {
   const [signedInEmail, setSignedInEmail] = useState<string>("");
 
   useEffect(() => {
-    // If already signed in, bounce into the app
+    // If already signed in, bounce to intended destination
     supabase.auth.getSession().then(({ data }) => {
       const e = data.session?.user?.email ?? "";
       if (e) {
         setSignedInEmail(e);
-        nav(`${GAME_BASE}/lets-go`, { replace: true });
+        nav(from, { replace: true });
       }
     });
 
@@ -27,12 +37,12 @@ export default function LoginPage() {
       const e = session?.user?.email ?? "";
       if (e) {
         setSignedInEmail(e);
-        nav(`${GAME_BASE}/lets-go`, { replace: true });
+        nav(from, { replace: true });
       }
     });
 
     return () => sub.subscription.unsubscribe();
-  }, [nav]);
+  }, [nav, from]);
 
   async function submit() {
     setMsg("");
@@ -50,29 +60,25 @@ export default function LoginPage() {
           setMsg(error.message);
           return;
         }
-        // session should exist on success
         const e = data.session?.user?.email ?? "";
         setSignedInEmail(e);
-        nav(`${GAME_BASE}/lets-go`, { replace: true });
+        nav(from, { replace: true });
         return;
       }
 
-      // signup
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) {
         setMsg(error.message);
         return;
       }
 
-      // If email confirmations are ON, there may be no session yet
       if (!data.session) {
         setMsg("Account created. Check your email to confirm, then sign in.");
         setMode("signin");
         return;
       }
 
-      // If confirmations are OFF, you’ll be signed in immediately
-      nav(`${GAME_BASE}/lets-go`, { replace: true });
+      nav(from, { replace: true });
     } finally {
       setBusy(false);
     }
