@@ -149,10 +149,7 @@ export default function AdminConsolePage() {
               >
                 <option value="">Choose...</option>
                 {tournaments.map((t) => {
-                  const label =
-                    t.title ||
-                    t.name ||
-                    (t.season ? `Tournament ${t.id} (${t.season})` : `Tournament ${t.id}`);
+                const label = `${t.id} • ${t.title || t.name || (t.season ? `Season ${t.season}` : "Tournament")}`;
                   return (
                     <option key={t.id} value={String(t.id)}>
                       {label}
@@ -168,7 +165,9 @@ export default function AdminConsolePage() {
 
             {hasTournament && selectedTournament && (
               <div style={{ color: "var(--fff-muted)", fontSize: 13 }}>
-                Selected: <strong style={{ color: "var(--fff-text)" }}>{selectedTournament.title || selectedTournament.name || `Tournament ${selectedTournament.id}`}</strong>
+                Selected: <strong style={{ color: "var(--fff-text)" }}>
+                {`${selectedTournament.id} • ${selectedTournament.title || selectedTournament.name || "Tournament"}`}
+              </strong>
               </div>
             )}
 
