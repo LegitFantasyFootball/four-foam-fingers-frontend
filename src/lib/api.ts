@@ -334,9 +334,9 @@ export async function fetchBracketGames(
 ): Promise<AdminGamesResponse> {
   const { leagueId, tournamentId, limit = 200, offset = 0 } = params;
 
-  const url = new URL("/player/bracket", API_BASE_URL);
-  url.searchParams.set("league_id", String(leagueId));
+  const url = new URL("/admin/games", API_BASE_URL);
   url.searchParams.set("tournament_id", String(tournamentId));
+  url.searchParams.set("league_id", String(leagueId)); // optional owner labels
   url.searchParams.set("limit", String(limit));
   url.searchParams.set("offset", String(offset));
 
@@ -347,3 +347,4 @@ export async function fetchBracketGames(
     opts
   );
 }
+
