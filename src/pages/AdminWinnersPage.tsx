@@ -1,4 +1,5 @@
 //src/pages/AdminWinnersPage.tsx
+// src/pages/AdminWinnersPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -10,20 +11,19 @@ import {
   type AuditItem,
 } from "../lib/api";
 
+// TEMP: legacy backend requires league_id query param.
+// This should be removed once backend admin endpoints stop depending on league_id.
+const LEGACY_ADMIN_LEAGUE_ID = 1;
 
 export default function AdminWinnersPage() {
-    const navigate = useNavigate();
-    const { leagueId, tournamentId } = useParams<{
-    leagueId: string;
-    tournamentId: string;
-    }>();
-    const leagueIdNum = Number(leagueId);
-    const tournamentIdNum = Number(tournamentId);
-    const hasValidParams =
-        Number.isInteger(leagueIdNum) &&
-        Number.isInteger(tournamentIdNum) &&
-        leagueIdNum > 0 &&
-        tournamentIdNum > 0;
+  const navigate = useNavigate();
+  const { tournamentId } = useParams<{ tournamentId: string }>();
+
+  const tournamentIdNum = Number(tournamentId);
+  const hasValidParams = Number.isInteger(tournamentIdNum) && tournamentIdNum > 0;
+
+  const leagueIdNum = LEGACY_ADMIN_LEAGUE_ID;
+
   const [games, setGames] = useState<AdminGame[]>([]);
   const [auditItems, setAuditItems] = useState<AuditItem[]>([]);
 
@@ -68,10 +68,10 @@ export default function AdminWinnersPage() {
 
   async function loadGames() {
     if (!hasValidParams) {
-        setGamesError("Invalid route params: leagueId/tournamentId");
-        setGamesLoading(false);
-        return;
-        }
+      setGamesError("Invalid route params: tournamentId");
+      setGamesLoading(false);
+      return;
+    }
     try {
       setGamesError(null);
       setGamesLoading(true);
@@ -91,12 +91,12 @@ export default function AdminWinnersPage() {
     }
   }
 
-async function loadAudit() {
-  if (!hasValidParams) {
-    setAuditError("Invalid route params: leagueId/tournamentId");
-    setAuditLoading(false);
-    return;
-  }
+  async function loadAudit() {
+    if (!hasValidParams) {
+      setAuditError("Invalid route params: tournamentId");
+      setAuditLoading(false);
+      return;
+    }
     try {
       setAuditError(null);
       setAuditLoading(true);
@@ -127,10 +127,10 @@ async function loadAudit() {
   }
 
   async function handleSetWinner(game: AdminGame, winnerTeamId: number) {
-   if (!hasValidParams) {
-        setActionError("Invalid route params: leagueId/tournamentId");
-        return;
-        }
+    if (!hasValidParams) {
+      setActionError("Invalid route params: tournamentId");
+      return;
+    }
     try {
       setActionError(null);
       setActionMessage(null);
@@ -158,9 +158,9 @@ async function loadAudit() {
 
   async function handleUndoWinner(game: AdminGame) {
     if (!hasValidParams) {
-        setActionError("Invalid route params: leagueId/tournamentId");
-        return;
-        }
+      setActionError("Invalid route params: tournamentId");
+      return;
+    }
     try {
       setActionError(null);
       setActionMessage(null);
@@ -173,9 +173,7 @@ async function loadAudit() {
       });
 
       setActionMessage(
-        `Undo success • game ${res.game_id} • winner=${String(
-          res.winner_team_id
-        )} • version=${res.version}`
+        `Undo success • game ${res.game_id} • winner=${String(res.winner_team_id)} • version=${res.version}`
       );
 
       await Promise.all([loadGames(), loadAudit()]);
@@ -187,36 +185,19 @@ async function loadAudit() {
     }
   }
 
-    useEffect(() => {
+  useEffect(() => {
     if (!hasValidParams) return;
     Promise.all([loadGames(), loadAudit()]).then(() => {
-        setLastUpdated(new Date().toLocaleTimeString());
+      setLastUpdated(new Date().toLocaleTimeString());
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [leagueId, tournamentId, hasValidParams]);
+  }, [tournamentId, hasValidParams]);
 
   return (
     <main style={{ minHeight: "100vh", padding: 16 }}>
       <div style={{ maxWidth: 920, margin: "0 auto" }}>
-        {/* Top controls */}
         <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
           <button onClick={() => navigate("/march-basketball-foam-fingers/admin")}>Back</button>
-            <button
-            disabled={!hasValidParams}
-            onClick={() =>
-                navigate(
-                `/march-basketball-foam-fingers/league/${leagueIdNum}/tournament/${tournamentIdNum}/leaderboard`
-                )
-            }
-            style={{
-                border: "1px solid var(--fff-border)",
-                background: "rgba(255,255,255,0.04)",
-                color: "var(--fff-text)",
-                fontWeight: 600,
-            }}
-            >
-            Leaderboard Page
-          </button>
           <button
             onClick={refreshAll}
             disabled={refreshing || gamesLoading || auditLoading}
@@ -229,26 +210,12 @@ async function loadAudit() {
           >
             {refreshing || gamesLoading || auditLoading ? "Refreshing..." : "Refresh"}
           </button>
-          <button
-            onClick={() => navigate("/march-basketball-foam-fingers/admin/tournament-field-setup")}
-            style={{
-                border: "1px solid var(--fff-border)",
-                background: "rgba(255,255,255,0.04)",
-                color: "var(--fff-text)",
-                fontWeight: 600,
-            }}
-            >
-            Tournament Team Setup
-            </button>
         </div>
 
-        {/* Header */}
         <SectionCard>
           <h1 style={{ fontSize: 24, margin: 0 }}>Admin Winners Console</h1>
           <p style={{ color: "var(--fff-muted)", marginTop: 8, marginBottom: 0 }}>
-            {hasValidParams
-            ? `League ${leagueIdNum} • Tournament ${tournamentIdNum}`
-            : "Invalid route params"}
+            {hasValidParams ? `Tournament ${tournamentIdNum}` : "Invalid tournamentId"}
             {lastUpdated ? ` • Updated ${lastUpdated}` : ""}
           </p>
 
@@ -257,21 +224,12 @@ async function loadAudit() {
             <Pill label={`Open ${unresolvedTotal}`} />
             <Pill label={`Resolved ${Math.max(games.length - unresolvedTotal, 0)}`} />
           </div>
-            </SectionCard>
+        </SectionCard>
 
-            {!hasValidParams && (
-            <ErrorBox
-                title="Invalid URL"
-                message="Expected /league/:leagueId/tournament/:tournamentId/admin-winners"
-            />
-            )}
-
-            {/* Action status */}
-            <SectionTitle title="Winner Controls" subtitle="Official result entry for bracket progression" />
+        <SectionTitle title="Winner Controls" subtitle="Official result entry for bracket progression" />
         {actionMessage && <SuccessBox message={actionMessage} />}
         {actionError && <ErrorBox title="Action failed" message={actionError} />}
 
-        {/* Games list */}
         {gamesLoading && games.length === 0 && <MutedLine>Loading games...</MutedLine>}
         {gamesError && <ErrorBox title="Could not load games" message={gamesError} />}
 
@@ -324,9 +282,7 @@ async function loadAudit() {
                         <div
                           key={game.id}
                           style={{
-                            background: isResolved
-                              ? "rgba(255,255,255,0.02)"
-                              : "rgba(48,242,78,0.03)",
+                            background: isResolved ? "rgba(255,255,255,0.02)" : "rgba(48,242,78,0.03)",
                             border: "1px solid var(--fff-border)",
                             borderRadius: 14,
                             padding: 12,
@@ -343,9 +299,7 @@ async function loadAudit() {
                               flexWrap: "wrap",
                             }}
                           >
-                            <div style={{ fontWeight: 700 }}>
-                              Game {game.id} • #{game.game_index}
-                            </div>
+                            <div style={{ fontWeight: 700 }}>Game {game.id} • #{game.game_index}</div>
 
                             <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                               <Pill label={isResolved ? "Resolved" : "Open"} />
@@ -360,9 +314,7 @@ async function loadAudit() {
                               onClick={() => game.team_a_id && handleSetWinner(game, game.team_a_id)}
                               style={winnerButtonStyle(game.winner_team_id === game.team_a_id)}
                             >
-                              {game.team_a_name ?? "TBD"}{" "}
-                              {game.team_a_seed ? `(Seed ${game.team_a_seed})` : ""}
-                              {game.team_a_owner_display_name ? ` • ${game.team_a_owner_display_name}` : ""}
+                              {game.team_a_name ?? "TBD"} {game.team_a_seed ? `(Seed ${game.team_a_seed})` : ""}
                               {game.winner_team_id === game.team_a_id ? " • WINNER" : ""}
                             </button>
 
@@ -371,9 +323,7 @@ async function loadAudit() {
                               onClick={() => game.team_b_id && handleSetWinner(game, game.team_b_id)}
                               style={winnerButtonStyle(game.winner_team_id === game.team_b_id)}
                             >
-                              {game.team_b_name ?? "TBD"}{" "}
-                              {game.team_b_seed ? `(Seed ${game.team_b_seed})` : ""}
-                              {game.team_b_owner_display_name ? ` • ${game.team_b_owner_display_name}` : ""}
+                              {game.team_b_name ?? "TBD"} {game.team_b_seed ? `(Seed ${game.team_b_seed})` : ""}
                               {game.winner_team_id === game.team_b_id ? " • WINNER" : ""}
                             </button>
 
@@ -400,7 +350,6 @@ async function loadAudit() {
           </div>
         )}
 
-        {/* Audit */}
         <SectionTitle title="Recent Admin Audit" subtitle="Newest changes first" />
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
           <button
@@ -438,17 +387,8 @@ async function loadAudit() {
                 <div style={{ color: "var(--fff-muted)", fontSize: 13, marginTop: 4 }}>
                   game {item.entity_id} • actor {item.actor_user_id}
                 </div>
-
                 {item.after_json && (
-                  <div
-                    style={{
-                      marginTop: 8,
-                      fontSize: 12,
-                      color: "var(--fff-muted)",
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
-                    }}
-                  >
+                  <div style={{ marginTop: 8, fontSize: 12, color: "var(--fff-muted)", whiteSpace: "pre-wrap" }}>
                     after: {JSON.stringify(item.after_json)}
                   </div>
                 )}
@@ -463,20 +403,9 @@ async function loadAudit() {
 
 function winnerButtonStyle(isWinner: boolean): React.CSSProperties {
   if (isWinner) {
-    return {
-      background: "var(--fff-accent)",
-      color: "#0B3323",
-      border: "none",
-      fontWeight: 800,
-    };
+    return { background: "var(--fff-accent)", color: "#0B3323", border: "none", fontWeight: 800 };
   }
-
-  return {
-    border: "1px solid var(--fff-border)",
-    background: "rgba(255,255,255,0.04)",
-    color: "var(--fff-text)",
-    fontWeight: 600,
-  };
+  return { border: "1px solid var(--fff-border)", background: "rgba(255,255,255,0.04)", color: "var(--fff-text)", fontWeight: 600 };
 }
 
 function Pill({ label }: { label: string }) {
@@ -497,14 +426,7 @@ function Pill({ label }: { label: string }) {
 
 function SectionCard({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        background: "var(--fff-surface)",
-        border: "1px solid var(--fff-border)",
-        borderRadius: 16,
-        padding: 16,
-      }}
-    >
+    <div style={{ background: "var(--fff-surface)", border: "1px solid var(--fff-border)", borderRadius: 16, padding: 16 }}>
       {children}
     </div>
   );
@@ -514,11 +436,7 @@ function SectionTitle({ title, subtitle }: { title: string; subtitle?: string })
   return (
     <div style={{ marginTop: 16 }}>
       <div style={{ fontWeight: 800, fontSize: 16 }}>{title}</div>
-      {subtitle ? (
-        <div style={{ color: "var(--fff-muted)", fontSize: 13, marginTop: 2 }}>
-          {subtitle}
-        </div>
-      ) : null}
+      {subtitle ? <div style={{ color: "var(--fff-muted)", fontSize: 13, marginTop: 2 }}>{subtitle}</div> : null}
     </div>
   );
 }
@@ -529,35 +447,16 @@ function MutedLine({ children }: { children: React.ReactNode }) {
 
 function ErrorBox({ title, message }: { title: string; message: string }) {
   return (
-    <div
-      style={{
-        marginTop: 12,
-        border: "1px solid rgba(255,255,255,0.15)",
-        borderRadius: 12,
-        padding: 12,
-        background: "rgba(0,0,0,0.15)",
-      }}
-    >
+    <div style={{ marginTop: 12, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 12, padding: 12, background: "rgba(0,0,0,0.15)" }}>
       <div style={{ fontWeight: 700, marginBottom: 6 }}>{title}</div>
-      <div style={{ color: "var(--fff-muted)", fontSize: 14, whiteSpace: "pre-wrap" }}>
-        {message}
-      </div>
+      <div style={{ color: "var(--fff-muted)", fontSize: 14, whiteSpace: "pre-wrap" }}>{message}</div>
     </div>
   );
 }
 
 function SuccessBox({ message }: { message: string }) {
   return (
-    <div
-      style={{
-        marginTop: 12,
-        border: "1px solid rgba(48,242,78,0.35)",
-        borderRadius: 12,
-        padding: 12,
-        background: "rgba(48,242,78,0.08)",
-        color: "var(--fff-text)",
-      }}
-    >
+    <div style={{ marginTop: 12, border: "1px solid rgba(48,242,78,0.35)", borderRadius: 12, padding: 12, background: "rgba(48,242,78,0.08)", color: "var(--fff-text)" }}>
       <div style={{ fontWeight: 700, marginBottom: 4 }}>Success</div>
       <div style={{ color: "var(--fff-muted)", fontSize: 14 }}>{message}</div>
     </div>

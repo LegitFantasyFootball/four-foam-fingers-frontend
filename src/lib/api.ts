@@ -103,9 +103,13 @@ async function buildHeaders(opts?: RequestOptions): Promise<HeadersInit> {
     Accept: "application/json",
   };
 
-  const token = await getAccessToken(opts);
-  if (token) {
+  const token = (await getAccessToken(opts)).trim();
+  if (token.length > 0) {
     headers.Authorization = `Bearer ${token}`;
+  } else {
+    // ensure we NEVER send "Bearer " from any merged header state
+    delete (headers as any).Authorization;
+    delete (headers as any).authorization;
   }
 
   // Dev-only fallback (never allow this in production builds)
@@ -174,14 +178,13 @@ export async function fetchLeaderboard(
 }
 
 export async function fetchAdminGames(
-  params: { tournamentId: number; leagueId: number; limit?: number; offset?: number },
+  params: { tournamentId: number; limit?: number; offset?: number },
   opts?: RequestOptions
 ): Promise<AdminGamesResponse> {
-  const { tournamentId, leagueId, limit = 200, offset = 0 } = params;
+  const { tournamentId, limit = 200, offset = 0 } = params;
 
   const url = new URL("/admin/games", API_BASE_URL);
   url.searchParams.set("tournament_id", String(tournamentId));
-  url.searchParams.set("league_id", String(leagueId));
   url.searchParams.set("limit", String(limit));
   url.searchParams.set("offset", String(offset));
 
@@ -194,13 +197,12 @@ export async function fetchAdminGames(
 }
 
 export async function undoWinner(
-  params: { gameId: number; leagueId: number; expectedVersion?: number },
+  params: { gameId: number; expectedVersion?: number },
   opts?: RequestOptions
 ): Promise<AdminWinnerResponse> {
-  const { gameId, leagueId, expectedVersion } = params;
+  const { gameId, expectedVersion } = params;
 
   const url = new URL(`/admin/games/${gameId}/undo-winner`, API_BASE_URL);
-  url.searchParams.set("league_id", String(leagueId));
   if (expectedVersion !== undefined) url.searchParams.set("expected_version", String(expectedVersion));
 
   return requestJson<AdminWinnerResponse>(
@@ -212,14 +214,13 @@ export async function undoWinner(
 }
 
 export async function setWinner(
-  params: { gameId: number; winnerTeamId: number; leagueId: number; expectedVersion?: number },
+  params: { gameId: number; winnerTeamId: number; expectedVersion?: number },
   opts?: RequestOptions
 ): Promise<AdminWinnerResponse> {
-  const { gameId, winnerTeamId, leagueId, expectedVersion } = params;
+  const { gameId, winnerTeamId, expectedVersion } = params;
 
   const url = new URL(`/admin/games/${gameId}/winner`, API_BASE_URL);
   url.searchParams.set("winner_team_id", String(winnerTeamId));
-  url.searchParams.set("league_id", String(leagueId));
   if (expectedVersion !== undefined) url.searchParams.set("expected_version", String(expectedVersion));
 
   return requestJson<AdminWinnerResponse>(
@@ -231,14 +232,13 @@ export async function setWinner(
 }
 
 export async function fetchAudit(
-  params: { tournamentId: number; leagueId: number; limit?: number; offset?: number },
+  params: { tournamentId: number; limit?: number; offset?: number },
   opts?: RequestOptions
 ): Promise<AuditResponse> {
-  const { tournamentId, leagueId, limit = 10, offset = 0 } = params;
+  const { tournamentId, limit = 10, offset = 0 } = params;
 
   const url = new URL("/admin/audit", API_BASE_URL);
   url.searchParams.set("tournament_id", String(tournamentId));
-  url.searchParams.set("league_id", String(leagueId));
   url.searchParams.set("limit", String(limit));
   url.searchParams.set("offset", String(offset));
 
