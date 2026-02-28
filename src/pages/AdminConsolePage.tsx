@@ -115,23 +115,27 @@ export default function AdminConsolePage() {
               {loading ? "Loading..." : "Search"}
             </button>
 
-            <button
-              onClick={() => setOffset((o) => Math.max(o - limit, 0)) || loadTournaments(Math.max(offset - limit, 0))}
-              disabled={loading || offset === 0}
-              style={buttonSecondary}
-            >
-              Prev
-            </button>
+          <button
+            onClick={() => {
+              const next = Math.max(offset - limit, 0);
+              void loadTournaments(next);
+            }}
+            disabled={loading || offset === 0}
+            style={buttonSecondary}
+          >
+            Prev
+          </button>
 
-            <button
-              onClick={() => loadTournaments(offset + limit)}
-              disabled={loading || tournaments.length < limit}
-              style={buttonSecondary}
-            >
-              Next
-            </button>
-          </div>
-
+          <button
+            onClick={() => {
+              const next = offset + limit;
+              void loadTournaments(next);
+            }}
+            disabled={loading || tournaments.length < limit}
+            style={buttonSecondary}
+          >
+            Next
+          </button>
           <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
             <label style={{ display: "grid", gap: 6 }}>
               <span style={{ fontSize: 13, color: "var(--fff-muted)" }}>Select Tournament</span>

@@ -254,3 +254,76 @@ export async function apiFetchJson<T>(path: string, init: RequestInit = {}, opts
   const url = new URL(path, API_BASE_URL);
   return requestJson<T>(url, init, `API request failed: ${path}`, opts);
 }
+
+export async function fetchAdminGamesByTournament(
+  params: { tournamentId: number; limit?: number; offset?: number },
+  opts?: RequestOptions
+): Promise<AdminGamesResponse> {
+  const { tournamentId, limit = 200, offset = 0 } = params;
+
+  const url = new URL("/admin/games", API_BASE_URL);
+  url.searchParams.set("tournament_id", String(tournamentId));
+  url.searchParams.set("limit", String(limit));
+  url.searchParams.set("offset", String(offset));
+
+  return requestJson<AdminGamesResponse>(
+    url,
+    { method: "GET", signal: opts?.signal },
+    "Admin games fetch failed",
+    opts
+  );
+}
+
+export async function fetchAdminAuditByTournament(
+  params: { tournamentId: number; limit?: number; offset?: number },
+  opts?: RequestOptions
+): Promise<AuditResponse> {
+  const { tournamentId, limit = 10, offset = 0 } = params;
+
+  const url = new URL("/admin/audit", API_BASE_URL);
+  url.searchParams.set("tournament_id", String(tournamentId));
+  url.searchParams.set("limit", String(limit));
+  url.searchParams.set("offset", String(offset));
+
+  return requestJson<AuditResponse>(
+    url,
+    { method: "GET", signal: opts?.signal },
+    "Audit fetch failed",
+    opts
+  );
+}
+
+export async function setWinnerAdmin(
+  params: { gameId: number; winnerTeamId: number; expectedVersion?: number },
+  opts?: RequestOptions
+): Promise<AdminWinnerResponse> {
+  const { gameId, winnerTeamId, expectedVersion } = params;
+
+  const url = new URL(`/admin/games/${gameId}/winner`, API_BASE_URL);
+  url.searchParams.set("winner_team_id", String(winnerTeamId));
+  if (expectedVersion !== undefined) url.searchParams.set("expected_version", String(expectedVersion));
+
+  return requestJson<AdminWinnerResponse>(
+    url,
+    { method: "PATCH", signal: opts?.signal },
+    "Set winner failed",
+    opts
+  );
+}
+
+export async function undoWinnerAdmin(
+  params: { gameId: number; expectedVersion?: number },
+  opts?: RequestOptions
+): Promise<AdminWinnerResponse> {
+  const { gameId, expectedVersion } = params;
+
+  const url = new URL(`/admin/games/${gameId}/undo-winner`, API_BASE_URL);
+  if (expectedVersion !== undefined) url.searchParams.set("expected_version", String(expectedVersion));
+
+  return requestJson<AdminWinnerResponse>(
+    url,
+    { method: "PATCH", signal: opts?.signal },
+    "Undo winner failed",
+    opts
+  );
+}

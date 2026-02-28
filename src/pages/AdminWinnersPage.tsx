@@ -1,7 +1,7 @@
 //src/pages/AdminWinnersPage.tsx
 // src/pages/AdminWinnersPage.tsx
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   fetchAdminGames,
   fetchAudit,
@@ -11,18 +11,12 @@ import {
   type AuditItem,
 } from "../lib/api";
 
-// TEMP: legacy backend requires league_id query param.
-// This should be removed once backend admin endpoints stop depending on league_id.
-const LEGACY_ADMIN_LEAGUE_ID = 1;
-
 export default function AdminWinnersPage() {
   const navigate = useNavigate();
-  const { tournamentId } = useParams<{ tournamentId: string }>();
+  const [sp] = useSearchParams();
 
-  const tournamentIdNum = Number(tournamentId);
+  const tournamentIdNum = Number(sp.get("tournament_id") || "");
   const hasValidParams = Number.isInteger(tournamentIdNum) && tournamentIdNum > 0;
-
-  const leagueIdNum = LEGACY_ADMIN_LEAGUE_ID;
 
   const [games, setGames] = useState<AdminGame[]>([]);
   const [auditItems, setAuditItems] = useState<AuditItem[]>([]);
@@ -42,10 +36,8 @@ export default function AdminWinnersPage() {
   function groupGamesByRound(list: AdminGame[]) {
     const sorted = [...list].sort((a, b) => {
       if (a.round_no !== b.round_no) return a.round_no - b.round_no;
-
       const aResolved = a.winner_team_id !== null;
       const bResolved = b.winner_team_id !== null;
-
       if (aResolved !== bResolved) return aResolved ? 1 : -1; // open first
       return a.game_index - b.game_index;
     });
@@ -68,7 +60,7 @@ export default function AdminWinnersPage() {
 
   async function loadGames() {
     if (!hasValidParams) {
-      setGamesError("Invalid route params: tournamentId");
+      setGamesError("Missing tournament_id");
       setGamesLoading(false);
       return;
     }
@@ -77,7 +69,6 @@ export default function AdminWinnersPage() {
       setGamesLoading(true);
 
       const data = await fetchAdminGames({
-        leagueId: leagueIdNum,
         tournamentId: tournamentIdNum,
         limit: 200,
         offset: 0,
@@ -93,7 +84,7 @@ export default function AdminWinnersPage() {
 
   async function loadAudit() {
     if (!hasValidParams) {
-      setAuditError("Invalid route params: tournamentId");
+      setAuditError("Missing tournament_id");
       setAuditLoading(false);
       return;
     }
@@ -102,7 +93,6 @@ export default function AdminWinnersPage() {
       setAuditLoading(true);
 
       const data = await fetchAudit({
-        leagueId: leagueIdNum,
         tournamentId: tournamentIdNum,
         limit: 10,
         offset: 0,
@@ -128,7 +118,7 @@ export default function AdminWinnersPage() {
 
   async function handleSetWinner(game: AdminGame, winnerTeamId: number) {
     if (!hasValidParams) {
-      setActionError("Invalid route params: tournamentId");
+      setActionError("Missing tournament_id");
       return;
     }
     try {
@@ -139,13 +129,10 @@ export default function AdminWinnersPage() {
       const res = await setWinner({
         gameId: game.id,
         winnerTeamId,
-        leagueId: leagueIdNum,
         expectedVersion: game.version,
       });
 
-      setActionMessage(
-        `Set success • game ${res.game_id} • winner=${res.winner_team_id} • version=${res.version}`
-      );
+      setActionMessage(`Set success • game ${res.game_id} • winner=${res.winner_team_id} • version=${res.version}`);
 
       await Promise.all([loadGames(), loadAudit()]);
       setLastUpdated(new Date().toLocaleTimeString());
@@ -158,7 +145,7 @@ export default function AdminWinnersPage() {
 
   async function handleUndoWinner(game: AdminGame) {
     if (!hasValidParams) {
-      setActionError("Invalid route params: tournamentId");
+      setActionError("Missing tournament_id");
       return;
     }
     try {
@@ -168,13 +155,10 @@ export default function AdminWinnersPage() {
 
       const res = await undoWinner({
         gameId: game.id,
-        leagueId: leagueIdNum,
         expectedVersion: game.version,
       });
 
-      setActionMessage(
-        `Undo success • game ${res.game_id} • winner=${String(res.winner_team_id)} • version=${res.version}`
-      );
+      setActionMessage(`Undo success • game ${res.game_id} • winner=${String(res.winner_team_id)} • version=${res.version}`);
 
       await Promise.all([loadGames(), loadAudit()]);
       setLastUpdated(new Date().toLocaleTimeString());
@@ -187,11 +171,9 @@ export default function AdminWinnersPage() {
 
   useEffect(() => {
     if (!hasValidParams) return;
-    Promise.all([loadGames(), loadAudit()]).then(() => {
-      setLastUpdated(new Date().toLocaleTimeString());
-    });
+    void refreshAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tournamentId, hasValidParams]);
+  }, [tournamentIdNum]);
 
   return (
     <main style={{ minHeight: "100vh", padding: 16 }}>
@@ -215,7 +197,7 @@ export default function AdminWinnersPage() {
         <SectionCard>
           <h1 style={{ fontSize: 24, margin: 0 }}>Admin Winners Console</h1>
           <p style={{ color: "var(--fff-muted)", marginTop: 8, marginBottom: 0 }}>
-            {hasValidParams ? `Tournament ${tournamentIdNum}` : "Invalid tournamentId"}
+            {hasValidParams ? `Tournament ${tournamentIdNum}` : "Missing tournament_id"}
             {lastUpdated ? ` • Updated ${lastUpdated}` : ""}
           </p>
 
@@ -249,26 +231,9 @@ export default function AdminWinnersPage() {
                     background: "rgba(255,255,255,0.02)",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 8,
-                      marginBottom: 10,
-                      flexWrap: "wrap",
-                    }}
-                  >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
                     <div style={{ fontWeight: 800 }}>Round {roundNo}</div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "var(--fff-muted)",
-                        border: "1px solid var(--fff-border)",
-                        borderRadius: 999,
-                        padding: "2px 8px",
-                      }}
-                    >
+                    <div style={{ fontSize: 12, color: "var(--fff-muted)", border: "1px solid var(--fff-border)", borderRadius: 999, padding: "2px 8px" }}>
                       Open {unresolvedCount} / {totalCount}
                     </div>
                   </div>
@@ -289,18 +254,8 @@ export default function AdminWinnersPage() {
                             opacity: isActing ? 0.75 : 1,
                           }}
                         >
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              gap: 8,
-                              alignItems: "center",
-                              marginBottom: 10,
-                              flexWrap: "wrap",
-                            }}
-                          >
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
                             <div style={{ fontWeight: 700 }}>Game {game.id} • #{game.game_index}</div>
-
                             <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                               <Pill label={isResolved ? "Resolved" : "Open"} />
                               <Pill label={`v${game.version}`} />
@@ -371,19 +326,9 @@ export default function AdminWinnersPage() {
         {!auditError && auditItems.length > 0 && (
           <div style={{ display: "grid", gap: 10, marginTop: 12, marginBottom: 40 }}>
             {auditItems.map((item) => (
-              <div
-                key={item.id}
-                style={{
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid var(--fff-border)",
-                  borderRadius: 14,
-                  padding: 12,
-                }}
-              >
+              <div key={item.id} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--fff-border)", borderRadius: 14, padding: 12 }}>
                 <div style={{ fontWeight: 700 }}>{item.action}</div>
-                <div style={{ color: "var(--fff-muted)", fontSize: 13, marginTop: 4 }}>
-                  {new Date(item.created_at).toLocaleString()}
-                </div>
+                <div style={{ color: "var(--fff-muted)", fontSize: 13, marginTop: 4 }}>{new Date(item.created_at).toLocaleString()}</div>
                 <div style={{ color: "var(--fff-muted)", fontSize: 13, marginTop: 4 }}>
                   game {item.entity_id} • actor {item.actor_user_id}
                 </div>
@@ -402,34 +347,20 @@ export default function AdminWinnersPage() {
 }
 
 function winnerButtonStyle(isWinner: boolean): React.CSSProperties {
-  if (isWinner) {
-    return { background: "var(--fff-accent)", color: "#0B3323", border: "none", fontWeight: 800 };
-  }
+  if (isWinner) return { background: "var(--fff-accent)", color: "#0B3323", border: "none", fontWeight: 800 };
   return { border: "1px solid var(--fff-border)", background: "rgba(255,255,255,0.04)", color: "var(--fff-text)", fontWeight: 600 };
 }
 
 function Pill({ label }: { label: string }) {
   return (
-    <div
-      style={{
-        fontSize: 12,
-        color: "var(--fff-muted)",
-        border: "1px solid var(--fff-border)",
-        borderRadius: 999,
-        padding: "2px 8px",
-      }}
-    >
+    <div style={{ fontSize: 12, color: "var(--fff-muted)", border: "1px solid var(--fff-border)", borderRadius: 999, padding: "2px 8px" }}>
       {label}
     </div>
   );
 }
 
 function SectionCard({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ background: "var(--fff-surface)", border: "1px solid var(--fff-border)", borderRadius: 16, padding: 16 }}>
-      {children}
-    </div>
-  );
+  return <div style={{ background: "var(--fff-surface)", border: "1px solid var(--fff-border)", borderRadius: 16, padding: 16 }}>{children}</div>;
 }
 
 function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
